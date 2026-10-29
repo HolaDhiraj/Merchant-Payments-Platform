@@ -1,0 +1,23 @@
+import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { AuditModule } from '../audit/audit.module';
+import { USER_REPOSITORY } from './domain/user.repository';
+import { PASSWORD_HASHER } from './domain/password-hasher';
+import { UserOrmEntity } from './infrastructure/user.orm-entity';
+import { TypeOrmUserRepository } from './infrastructure/typeorm-user.repository';
+import { BcryptPasswordHasher } from './infrastructure/bcrypt-password-hasher';
+import { CreateUserUseCase } from './application/create-user.use-case';
+import { UsersController } from './presentation/users.controller';
+
+// Owns user accounts. Exposes the repository and hasher ports to auth and other modules.
+@Module({
+  imports: [TypeOrmModule.forFeature([UserOrmEntity]), AuditModule],
+  controllers: [UsersController],
+  providers: [
+    { provide: USER_REPOSITORY, useClass: TypeOrmUserRepository },
+    { provide: PASSWORD_HASHER, useClass: BcryptPasswordHasher },
+    CreateUserUseCase,
+  ],
+  exports: [USER_REPOSITORY, PASSWORD_HASHER, CreateUserUseCase],
+})
+export class UsersModule {}
