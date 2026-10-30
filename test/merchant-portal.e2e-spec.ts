@@ -156,6 +156,25 @@ describe('Merchant portal (e2e)', () => {
       await ctx.http.get('/api/merchants').set(bearer(owner)).expect(403);
       await ctx.http.get('/api/users').set(bearer(owner)).expect(403);
     });
+
+    it('stores the payout account number encrypted at rest and only ever returns its last 4 digits', async () => {
+      const accountNumber = '00112233445566';
+      const updated = await ctx.http
+        .patch('/api/merchant/settings')
+        .set(bearer(owner))
+        .send({ settlementAccount: { bankName: 'Test Bank', accountHolder: 'Test Coffee', accountNumber } })
+        .expect(200);
+      expect(updated.body.settlement).toEqual({ bankName: 'Test Bank', accountHolder: 'Test Coffee', accountLast4: '5566' });
+      expect(JSON.stringify(updated.body)).not.toContain(accountNumber);
+
+      const [row] = await ctx.dataSource.query(
+        'SELECT row_to_json(m)::text AS json, settlement_account_encrypted, settlement_account_last4 FROM merchants m WHERE id = $1',
+        [updated.body.id],
+      );
+      expect(row.settlement_account_encrypted.startsWith('v1.')).toBe(true);
+      expect(row.settlement_account_last4).toBe('5566');
+      expect(row.json).not.toContain(accountNumber);
+    });
   });
 
   describe('team', () => {
