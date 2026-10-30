@@ -422,9 +422,9 @@ but only if their role can open it; a deliberate sign-out never carries the page
 | Unit: `hmac-webhook-signature.verifier.spec.ts`, `handle-risk-provider-webhook.use-case.spec.ts` | Signature edge cases (rotation, replay under a new id, truncation), webhook idempotency |
 | Unit: `fraud-screening`, `card`, `pricing`, `loyalty` | Every fraud rule and threshold, Luhn / expiry / brand, discount precedence and rounding, points earned and the redemption cap |
 | Integration: `users.e2e-spec.ts` | User management, lockout after repeated wrong passwords with the warning, admin unlock, activation and deactivation |
-| Integration: `merchant-portal.e2e-spec.ts` | Onboarding on approval and the forced password change, merchant team, catalogue discounts, every payment method, idempotent replay, fraud hold / approve / void / block, loyalty, reports, **tenant isolation**, and admin monitoring (read access, 403 for other roles, 404 across merchants) |
+| Integration: `merchant-portal.e2e-spec.ts` | Onboarding on approval and the forced password change, merchant team, catalogue discounts, every payment method, payout account encrypted at rest, idempotent replay, fraud hold / approve / void / block, loyalty, reports, **tenant isolation**, and admin monitoring (read access, 403 for other roles, 404 across merchants) |
 
-Current result: **146 unit tests, 82 integration tests, all passing**.
+Current result: **146 unit tests, 83 integration tests, all passing**.
 CI (`.github/workflows/ci.yml`) runs lint, typecheck, build, unit tests with coverage and the integration suite against
 PostgreSQL and Redis service containers on every push and PR. Set `TEST_LOGS=1` to see application logs while debugging tests.
 
@@ -454,6 +454,24 @@ PostgreSQL and Redis service containers on every push and PR. Set `TEST_LOGS=1` 
 ## 10. AI assistance disclosure
 
 An AI coding assistant was used to scaffold and write parts of the code, tests and documentation.
-Verification steps: I reviewed every file, ran type-check (`tsc`, app and tests), ESLint, the unit suite and the integration suite
-against real PostgreSQL and Redis, and did a manual smoke test of the full lifecycle over HTTP (create, submit, async risk review,
-assign, approve, audit log), checking that the tax id is stored only as ciphertext.
+
+Verification steps:
+
+- I reviewed every file.
+- I ran the type-check (`tsc`, app and tests), ESLint, the unit suite and the integration suite against real
+  PostgreSQL and Redis.
+- I did a manual smoke test of the full lifecycle over HTTP: create, submit, async risk review, assign, approve and
+  onboard the merchant, then take cash, card and bank-transfer payments, and read the audit log.
+- I checked how sensitive values are stored, both with automated tests and by searching a full database dump for
+  the plaintext values:
+
+| Value | What the database holds | Checked by |
+|---|---|---|
+| Merchant tax id (EIN / TIN) | AES-256-GCM ciphertext (`v1.` prefix) + last 4 digits | `lifecycle.e2e-spec.ts`: "stores the tax id encrypted at rest" |
+| Merchant payout (settlement) account number | AES-256-GCM ciphertext (`v1.` prefix) + last 4 digits; the API returns only the last 4 | `merchant-portal.e2e-spec.ts`: "stores the payout account number encrypted at rest…" |
+| Customer card number, CVV, expiry | **Not stored at all**, not even encrypted: only brand, last 4 digits and a one-way HMAC fingerprint | `merchant-portal.e2e-spec.ts`: "takes cards without ever returning or storing the card number" |
+| Customer bank account number, bank PIN | **Not stored at all**: only the last 4 digits of the account and an HMAC fingerprint; the PIN is never kept | the same suite; database dump search |
+| User passwords | bcrypt hash only (cost 12); never logged or audited | code review; `auth.e2e-spec.ts`: "never writes passwords or tokens to the audit trail" |
+
+Encrypted means it can be decrypted with `FIELD_ENCRYPTION_KEY` when the application needs the value. "Not stored"
+means the value is used once during checkout and then discarded, so the database cannot leak it.
