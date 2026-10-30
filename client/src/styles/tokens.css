@@ -1,0 +1,116 @@
+/*
+ * Design tokens. Components only ever reference these variables, so the light and dark
+ * themes (and any future rebrand) are a change in this one file.
+ */
+:root {
+  --font-sans: 'IBM Plex Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+
+  --text-xs: 0.75rem;
+  --text-sm: 0.8125rem;
+  --text-base: 0.875rem;
+  --text-md: 1rem;
+  --text-lg: 1.25rem;
+  --text-xl: 1.625rem;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+
+  --radius-sm: 4px;
+  --radius: 6px;
+  --radius-lg: 10px;
+
+  --control-height: 34px;
+  --control-height-sm: 28px;
+  --sidebar-width: 236px;
+  --content-max: 1180px;
+
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+  --duration: 140ms;
+
+  /* Light theme */
+  --bg: #f6f5f1;
+  --surface: #ffffff;
+  --surface-sunken: #efede7;
+  --surface-hover: #f3f2ed;
+  --border: #e3e0d7;
+  --border-strong: #cfcbbf;
+  --text: #1c1b18;
+  --text-muted: #5c5950;
+  --text-faint: #8b877c;
+
+  --accent: #1f5d4c;
+  --accent-hover: #174a3c;
+  --accent-soft: #e2ede8;
+  --accent-text: #1a5243;
+  --on-accent: #ffffff;
+  --focus-ring: color-mix(in srgb, var(--accent) 35%, transparent);
+
+  --neutral-soft: #eceae4;
+  --neutral-text: #57544b;
+  --info-soft: #e3ebf4;
+  --info-text: #2b5582;
+  --warning-soft: #f7edd5;
+  --warning-text: #8a5c0b;
+  --attention-soft: #f8e6d8;
+  --attention-text: #9a4513;
+  --success-soft: #e0eee3;
+  --success-text: #2a6639;
+  --danger: #b03a2b;
+  --danger-hover: #952f22;
+  --danger-soft: #f7e3df;
+  --danger-text: #9c3022;
+
+  --shadow-overlay: 0 1px 2px rgb(28 27 24 / 6%), 0 12px 32px -8px rgb(28 27 24 / 22%);
+  --backdrop: rgb(28 27 24 / 32%);
+  --skeleton: #ebe9e2;
+  --skeleton-shine: #f5f4ef;
+
+  color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+  --bg: #131412;
+  --surface: #1a1b19;
+  --surface-sunken: #111210;
+  --surface-hover: #21221f;
+  --border: #2b2c28;
+  --border-strong: #3b3c37;
+  --text: #ebe9e3;
+  --text-muted: #a7a398;
+  --text-faint: #75726a;
+
+  --accent: #4fae8c;
+  --accent-hover: #63bf9d;
+  --accent-soft: #1d3029;
+  --accent-text: #7fcaad;
+  --on-accent: #0c1d17;
+
+  --neutral-soft: #262723;
+  --neutral-text: #b4b0a5;
+  --info-soft: #1d2836;
+  --info-text: #8db4dd;
+  --warning-soft: #33291a;
+  --warning-text: #e0b465;
+  --attention-soft: #36231a;
+  --attention-text: #ec9a68;
+  --success-soft: #1c2e21;
+  --success-text: #82c592;
+  --danger: #d9634f;
+  --danger-hover: #e57a67;
+  --danger-soft: #3a201b;
+  --danger-text: #f0927f;
+
+  --shadow-overlay: 0 1px 2px rgb(0 0 0 / 30%), 0 16px 40px -8px rgb(0 0 0 / 60%);
+  --backdrop: rgb(0 0 0 / 55%);
+  --skeleton: #22231f;
+  --skeleton-shine: #2a2b27;
+
+  color-scheme: dark;
+}

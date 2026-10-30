@@ -69,7 +69,7 @@ export async function createTestContext(): Promise<TestContext> {
         .get(CreateUserUseCase)
         .execute(null, { email, password: TEST_PASSWORD, role, fullName: `Test ${label}` });
       const response = await request(app.getHttpServer())
-        .post('/auth/login')
+        .post('/api/auth/login')
         .send({ email, password: TEST_PASSWORD })
         .expect(200);
       return { id: user.id, email, role, token: response.body.accessToken };

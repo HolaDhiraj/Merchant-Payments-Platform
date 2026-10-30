@@ -55,7 +55,7 @@ describe('Risk provider webhook (e2e)', () => {
     const signature =
       options.signature ?? HmacWebhookSignatureVerifier.sign(secret(), eventId, timestamp, payload);
     return ctx.http
-      .post('/webhooks/risk-provider')
+      .post('/api/webhooks/risk-provider')
       .set('content-type', 'application/json')
       .set('x-webhook-id', eventId)
       .set('x-webhook-timestamp', timestamp)
@@ -80,7 +80,7 @@ describe('Risk provider webhook (e2e)', () => {
     expect(application).toMatchObject({ status: 'UNDER_REVIEW', riskLevel: 'HIGH', riskScore: 72 });
 
     const audit = await ctx.http
-      .get(`/audit-logs?entityId=${id}&action=RISK_REVIEW_COMPLETED`)
+      .get(`/api/audit-logs?entityId=${id}&action=RISK_REVIEW_COMPLETED`)
       .set(auth(admin))
       .expect(200);
     expect(audit.body.items[0].metadata.source).toBe('WEBHOOK');
@@ -129,7 +129,7 @@ describe('Risk provider webhook (e2e)', () => {
   });
 
   it('rejects requests without signature headers', async () => {
-    await ctx.http.post('/webhooks/risk-provider').send({}).expect(401);
+    await ctx.http.post('/api/webhooks/risk-provider').send({}).expect(401);
   });
 
   it('validates the payload after the signature check', async () => {

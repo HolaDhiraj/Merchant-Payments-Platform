@@ -1,0 +1,105 @@
+.button {
+  --button-bg: var(--surface);
+  --button-fg: var(--text);
+  --button-border: var(--border-strong);
+  --button-hover: var(--surface-hover);
+
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  height: var(--control-height);
+  padding: 0 var(--space-3);
+  border: 1px solid var(--button-border);
+  border-radius: var(--radius);
+  background: var(--button-bg);
+  color: var(--button-fg);
+  font-size: var(--text-base);
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  text-decoration: none;
+  transition:
+    background var(--duration) var(--ease),
+    border-color var(--duration) var(--ease),
+    color var(--duration) var(--ease);
+}
+
+.button:hover:not(:disabled) {
+  background: var(--button-hover);
+  text-decoration: none;
+}
+
+.button:active:not(:disabled) {
+  transform: translateY(0.5px);
+}
+
+.button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.primary {
+  --button-bg: var(--accent);
+  --button-fg: var(--on-accent);
+  --button-border: var(--accent);
+  --button-hover: var(--accent-hover);
+}
+
+.danger {
+  --button-bg: var(--danger);
+  --button-fg: #fff;
+  --button-border: var(--danger);
+  --button-hover: var(--danger-hover);
+}
+
+.ghost {
+  --button-bg: transparent;
+  --button-border: transparent;
+  --button-fg: var(--text-muted);
+  --button-hover: var(--surface-hover);
+}
+
+.ghost:hover:not(:disabled) {
+  color: var(--text);
+}
+
+.sm {
+  height: var(--control-height-sm);
+  padding: 0 var(--space-2);
+  font-size: var(--text-sm);
+}
+
+.iconOnly {
+  width: var(--control-height);
+  padding: 0;
+}
+
+.sm.iconOnly {
+  width: var(--control-height-sm);
+}
+
+.block {
+  width: 100%;
+}
+
+/* While loading the label keeps its width but hides, so the button never jumps in size. */
+.loading {
+  cursor: progress;
+}
+
+.loading > .content {
+  visibility: hidden;
+}
+
+.loading > .spinner {
+  position: absolute;
+}
+
+.content {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}

@@ -1,0 +1,26 @@
+.wordmark {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text);
+  font-weight: 600;
+  font-size: var(--text-md);
+  letter-spacing: -0.015em;
+}
+
+.wordmark:hover {
+  text-decoration: none;
+}
+
+.glyph {
+  flex-shrink: 0;
+  color: var(--accent);
+}
+
+.glyph rect {
+  fill: currentColor;
+}
+
+.glyph path {
+  stroke: var(--bg);
+}

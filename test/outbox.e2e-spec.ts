@@ -41,7 +41,7 @@ describe('Transactional outbox (e2e)', () => {
 
   it('stores the review request with the submission and marks it dispatched after delivery', async () => {
     const id = await createApplication(ctx, sales);
-    await ctx.http.post(`/merchant-applications/${id}/submit`).set(auth(sales)).expect(202);
+    await ctx.http.post(`/api/merchant-applications/${id}/submit`).set(auth(sales)).expect(202);
 
     await waitFor(
       () => getAsAdmin(ctx, admin, id),
@@ -54,9 +54,9 @@ describe('Transactional outbox (e2e)', () => {
 
   it('writes nothing to the outbox when the transaction is rolled back', async () => {
     const id = await createApplication(ctx, sales);
-    await ctx.http.post(`/merchant-applications/${id}/submit`).set(auth(sales)).expect(202);
+    await ctx.http.post(`/api/merchant-applications/${id}/submit`).set(auth(sales)).expect(202);
     // Second submit is an invalid transition: the whole transaction must roll back.
-    await ctx.http.post(`/merchant-applications/${id}/submit`).set(auth(sales)).expect(409);
+    await ctx.http.post(`/api/merchant-applications/${id}/submit`).set(auth(sales)).expect(409);
     expect(await outboxRowsFor(id)).toHaveLength(1);
   });
 
@@ -71,7 +71,7 @@ describe('Transactional outbox (e2e)', () => {
 
     const id = await createApplication(ctx, sales);
     const submitted = await ctx.http
-      .post(`/merchant-applications/${id}/submit`)
+      .post(`/api/merchant-applications/${id}/submit`)
       .set(auth(sales))
       .expect(202);
     expect(submitted.body.status).toBe('SUBMITTED');

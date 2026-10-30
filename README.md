@@ -1,6 +1,7 @@
 # Merchant Payments Platform
 
-Merchant onboarding and risk-review backend built with **NestJS 11, TypeScript, PostgreSQL (TypeORM), Redis + BullMQ, JWT**.
+Merchant onboarding and risk-review platform built with **NestJS 11, TypeScript, PostgreSQL (TypeORM), Redis + BullMQ, JWT**,
+plus a **React web client ("Merchant Desk")** served by the same NestJS process on the same port.
 Sales users capture merchant applications, a background worker runs a (simulated) third-party KYB / risk check,
 and the assigned reviewer approves, rejects or requests more information. Every significant action is audited.
 
@@ -21,10 +22,38 @@ docker compose up -d postgres redis
 set -a; . ./.env; set +a         # export .env for the TypeORM CLI and seed script
 npm run migration:run            # applies the reviewed migrations (run again after pulling new ones)
 npm run seed                     # creates one ADMIN, REVIEWER and SALES user from SEED_* variables in .env
-npm run start:dev                # API on http://localhost:3000, Swagger UI on http://localhost:3000/docs
+npm run start:dev                # web app http://localhost:3000, API /api, Swagger UI /api/docs
 ```
 
 Seed credentials are the `SEED_*_EMAIL` / `SEED_*_PASSWORD` values that `env:init` generated in your local `.env`.
+Sign in to the web app with any of them; each role sees its own screens and actions.
+
+### One port for the web app and the API
+
+| URL | Served by |
+|---|---|
+| `http://localhost:3000/` (and every other non-`/api` path) | React web client |
+| `http://localhost:3000/api/...` | REST API (all routes carry the `/api` prefix) |
+| `http://localhost:3000/api/docs` | Swagger UI |
+
+- **Development** (`npm run start:dev`): Nest mounts Vite in middleware mode on its own HTTP server
+  (`src/infrastructure/web-client/web-client.ts`), so there is one process, one port, and hot reload for the client.
+- **Production** (`npm run build` then `npm run start:prod`): `nest build` compiles the API, then Vite writes the
+  client bundle to `dist/client`, which Nest serves as static files with an SPA fallback. Hashed assets are cached for a year.
+- The client calls the API with relative `/api/...` URLs: same origin, so no CORS, no base-URL config, and the API stays
+  fully usable from curl, Postman or Swagger on the same port.
+
+The client lives in `client/` (React 19, React Router, TanStack Query, CSS Modules on design tokens, light and dark themes):
+
+```
+client/src/
+  api/          typed fetch client, endpoint functions, React Query hooks (polls while a risk check runs)
+  auth/         session storage, AuthProvider (GET /api/users/me), route guard
+  components/   ui/ primitives (Button, Field, Dialog, Badge, Spinner, Skeleton…) and layout/ (AppShell, PageHeader)
+  features/     applications, audit, team, auth: one folder per screen area
+  lib/          formatting (money in minor units), enum labels, theme
+  styles/       tokens.css (the whole palette and scale) and base.css
+```
 
 Run everything in containers (API applies migrations on start). Stop any local `start:dev` first, because both use port 3000:
 
@@ -202,7 +231,7 @@ Example (bash):
 BODY='{"eventType":"risk_assessment.completed","applicationId":"<uuid>","submissionNumber":1,"provider":"acme-kyb","providerReference":"ref-1","score":55,"level":"MEDIUM","reasons":["HIGH_AVERAGE_TICKET"],"assessedAt":"2026-10-29T15:00:00Z"}'
 TS=$(date +%s); ID=evt_$(date +%s%N)
 SIG=v1=$(printf '%s' "$ID.$TS.$BODY" | openssl dgst -sha256 -hmac "$RISK_WEBHOOK_SECRET" -hex | awk '{print $NF}')
-curl -X POST localhost:3000/webhooks/risk-provider -H 'content-type: application/json' \
+curl -X POST localhost:3000/api/webhooks/risk-provider -H 'content-type: application/json' \
   -H "x-webhook-id: $ID" -H "x-webhook-timestamp: $TS" -H "x-webhook-signature: $SIG" -d "$BODY"
 ```
 
@@ -255,12 +284,14 @@ Defined in **hand-written, reviewed** migrations (`src/infrastructure/database/m
 
 ## 7. API overview
 
-Full, interactive documentation: **`/docs`** (Swagger / OpenAPI).
+Full, interactive documentation: **`/api/docs`** (Swagger / OpenAPI). Every path below is relative to **`/api`**.
 
 | Method | Path | Roles |
 |---|---|---|
 | POST | `/auth/login` | public (rate limited) |
 | POST | `/users` | ADMIN |
+| GET | `/users?role=&page=&pageSize=` | ADMIN |
+| GET | `/users/me` | any signed-in user |
 | POST | `/merchant-applications` | SALES, ADMIN |
 | GET | `/merchant-applications?status=&page=&pageSize=&assignedToMe=` | all (scoped) |
 | GET | `/merchant-applications/:id` | all (scoped) |

@@ -8,7 +8,7 @@ export async function createApplication(
   overrides: Record<string, unknown> = {},
 ): Promise<string> {
   const response = await ctx.http
-    .post('/merchant-applications')
+    .post('/api/merchant-applications')
     .set(auth(owner))
     .send(applicationPayload(overrides))
     .expect(201);
@@ -16,7 +16,7 @@ export async function createApplication(
 }
 
 export async function getAsAdmin(ctx: TestContext, admin: TestUser, id: string) {
-  const response = await ctx.http.get(`/merchant-applications/${id}`).set(auth(admin)).expect(200);
+  const response = await ctx.http.get(`/api/merchant-applications/${id}`).set(auth(admin)).expect(200);
   return response.body;
 }
 
@@ -26,7 +26,7 @@ export async function submitAndAwaitRisk(
   admin: TestUser,
   id: string,
 ): Promise<Record<string, unknown>> {
-  await ctx.http.post(`/merchant-applications/${id}/submit`).set(auth(owner)).expect(202);
+  await ctx.http.post(`/api/merchant-applications/${id}/submit`).set(auth(owner)).expect(202);
   return waitFor(
     () => getAsAdmin(ctx, admin, id),
     (body) => body.status === 'UNDER_REVIEW',
@@ -42,7 +42,7 @@ export async function prepareUnderReview(
   const id = await createApplication(ctx, owner);
   await submitAndAwaitRisk(ctx, owner, admin, id);
   await ctx.http
-    .put(`/merchant-applications/${id}/reviewer`)
+    .put(`/api/merchant-applications/${id}/reviewer`)
     .set(auth(admin))
     .send({ reviewerId: reviewer.id })
     .expect(200);

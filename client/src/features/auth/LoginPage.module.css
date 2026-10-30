@@ -1,0 +1,63 @@
+.page {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  min-height: 100vh;
+  padding: var(--space-6);
+}
+
+.top {
+  display: flex;
+  justify-content: space-between;
+}
+
+.theme {
+  width: 96px;
+}
+
+.center {
+  display: grid;
+  place-items: center;
+  padding: var(--space-8) 0;
+}
+
+.card {
+  width: min(380px, 100%);
+}
+
+.heading {
+  margin-bottom: var(--space-6);
+}
+
+.title {
+  font-size: var(--text-xl);
+}
+
+.lede {
+  margin-top: var(--space-2);
+  color: var(--text-muted);
+}
+
+.form {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.submit {
+  margin-top: var(--space-2);
+}
+
+.foot {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--space-3);
+  color: var(--text-faint);
+  font-size: var(--text-sm);
+}
+
+.foot a {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--text-muted);
+}

@@ -1,0 +1,60 @@
+.loading {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.item {
+  position: relative;
+  display: grid;
+  gap: 2px;
+  padding: 0 0 var(--space-4) var(--space-5);
+}
+
+/* Timeline rail and node. */
+.item::before {
+  content: '';
+  position: absolute;
+  top: 6px;
+  left: 3px;
+  width: 7px;
+  height: 7px;
+  border: 1.5px solid var(--accent);
+  border-radius: 50%;
+  background: var(--surface);
+}
+
+.item:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  top: 16px;
+  bottom: 2px;
+  left: 6px;
+  width: 1px;
+  background: var(--border);
+}
+
+.action {
+  font-weight: 500;
+}
+
+.meta {
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+}
+
+.detail {
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+  overflow-wrap: anywhere;
+}
+
+.footer {
+  padding-top: var(--space-2);
+  font-size: var(--text-sm);
+}

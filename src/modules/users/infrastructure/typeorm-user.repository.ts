@@ -3,8 +3,9 @@ import { Repository } from 'typeorm';
 import { TransactionalEntityManager } from '../../../shared/infrastructure/database/transactional-entity-manager';
 import { isUniqueViolation } from '../../../shared/infrastructure/database/postgres-errors';
 import { DuplicateEntityError } from '../../../shared/domain/domain-errors';
+import { buildPage, Page, PageRequest } from '../../../shared/application/pagination';
 import { User } from '../domain/user';
-import { UserRepository } from '../domain/user.repository';
+import { UserRepository, UserSearchCriteria } from '../domain/user.repository';
 import { UserOrmEntity } from './user.orm-entity';
 
 // TypeORM adapter for the UserRepository port.
@@ -45,6 +46,20 @@ export class TypeOrmUserRepository implements UserRepository {
       }
       throw error;
     }
+  }
+
+  async search(criteria: UserSearchCriteria, page: PageRequest): Promise<Page<User>> {
+    const [rows, total] = await this.repository.findAndCount({
+      where: criteria.role ? { role: criteria.role } : {},
+      order: { fullName: 'ASC', id: 'ASC' },
+      skip: (page.page - 1) * page.pageSize,
+      take: page.pageSize,
+    });
+    return buildPage(
+      rows.map((row) => this.toDomain(row)),
+      total,
+      page,
+    );
   }
 
   private toDomain(row: UserOrmEntity): User {

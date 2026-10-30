@@ -20,7 +20,7 @@ describe('Merchant application lifecycle (e2e)', () => {
   it('runs the full journey: draft -> submitted -> under review -> info requested -> resubmitted -> approved', async () => {
     // Create (DRAFT) with normalised input
     const created = await ctx.http
-      .post('/merchant-applications')
+      .post('/api/merchant-applications')
       .set(auth(sales))
       .send({
         businessName: 'Journey Cafe',
@@ -49,7 +49,7 @@ describe('Merchant application lifecycle (e2e)', () => {
 
     // Edit while DRAFT
     await ctx.http
-      .patch(`/merchant-applications/${id}`)
+      .patch(`/api/merchant-applications/${id}`)
       .set(auth(sales))
       .send({ businessName: 'Journey Coffee' })
       .expect(200);
@@ -64,32 +64,32 @@ describe('Merchant application lifecycle (e2e)', () => {
 
     // Not editable and not re-submittable any more
     await ctx.http
-      .patch(`/merchant-applications/${id}`)
+      .patch(`/api/merchant-applications/${id}`)
       .set(auth(sales))
       .send({ businessName: 'Late' })
       .expect(409);
-    await ctx.http.post(`/merchant-applications/${id}/submit`).set(auth(sales)).expect(409);
+    await ctx.http.post(`/api/merchant-applications/${id}/submit`).set(auth(sales)).expect(409);
 
     // Reviewer must be assigned before deciding
     await ctx.http
-      .post(`/merchant-applications/${id}/decision`)
+      .post(`/api/merchant-applications/${id}/decision`)
       .set(auth(reviewer))
       .send({ decision: 'APPROVE' })
       .expect(403);
     await ctx.http
-      .put(`/merchant-applications/${id}/reviewer`)
+      .put(`/api/merchant-applications/${id}/reviewer`)
       .set(auth(admin))
       .send({ reviewerId: reviewer.id })
       .expect(200);
 
     // REQUEST_INFO needs a reason
     await ctx.http
-      .post(`/merchant-applications/${id}/decision`)
+      .post(`/api/merchant-applications/${id}/decision`)
       .set(auth(reviewer))
       .send({ decision: 'REQUEST_INFO' })
       .expect(422);
     const infoRequested = await ctx.http
-      .post(`/merchant-applications/${id}/decision`)
+      .post(`/api/merchant-applications/${id}/decision`)
       .set(auth(reviewer))
       .send({ decision: 'REQUEST_INFO', reason: 'Please confirm expected volume' })
       .expect(200);
@@ -97,7 +97,7 @@ describe('Merchant application lifecycle (e2e)', () => {
 
     // Sales fixes the data and resubmits; a second risk review runs
     await ctx.http
-      .patch(`/merchant-applications/${id}`)
+      .patch(`/api/merchant-applications/${id}`)
       .set(auth(sales))
       .send({ processing: { expectedMonthlyVolumeMinor: 3000000 } })
       .expect(200);
@@ -106,7 +106,7 @@ describe('Merchant application lifecycle (e2e)', () => {
 
     // Approve -> terminal
     const approved = await ctx.http
-      .post(`/merchant-applications/${id}/decision`)
+      .post(`/api/merchant-applications/${id}/decision`)
       .set(auth(reviewer))
       .send({ decision: 'APPROVE' })
       .expect(200);
@@ -118,12 +118,12 @@ describe('Merchant application lifecycle (e2e)', () => {
 
     // Terminal: no further decisions or re-assignment
     await ctx.http
-      .post(`/merchant-applications/${id}/decision`)
+      .post(`/api/merchant-applications/${id}/decision`)
       .set(auth(reviewer))
       .send({ decision: 'REJECT', reason: 'Changed my mind' })
       .expect(409);
     await ctx.http
-      .put(`/merchant-applications/${id}/reviewer`)
+      .put(`/api/merchant-applications/${id}/reviewer`)
       .set(auth(admin))
       .send({ reviewerId: reviewer.id })
       .expect(409);
@@ -137,7 +137,7 @@ describe('Merchant application lifecycle (e2e)', () => {
 
     // Audit trail covers creation, assignment and decisions
     const audit = await ctx.http
-      .get(`/audit-logs?entityId=${id}&pageSize=50`)
+      .get(`/api/audit-logs?entityId=${id}&pageSize=50`)
       .set(auth(admin))
       .expect(200);
     const actions = audit.body.items.map((item: { action: string }) => item.action);
@@ -162,17 +162,17 @@ describe('Merchant application lifecycle (e2e)', () => {
     const id = await createApplication(ctx, sales);
     await submitAndAwaitRisk(ctx, sales, admin, id);
     await ctx.http
-      .put(`/merchant-applications/${id}/reviewer`)
+      .put(`/api/merchant-applications/${id}/reviewer`)
       .set(auth(admin))
       .send({ reviewerId: reviewer.id })
       .expect(200);
     await ctx.http
-      .post(`/merchant-applications/${id}/decision`)
+      .post(`/api/merchant-applications/${id}/decision`)
       .set(auth(reviewer))
       .send({ decision: 'REJECT' })
       .expect(422);
     const rejected = await ctx.http
-      .post(`/merchant-applications/${id}/decision`)
+      .post(`/api/merchant-applications/${id}/decision`)
       .set(auth(reviewer))
       .send({ decision: 'REJECT', reason: 'Business could not be verified' })
       .expect(200);
@@ -192,13 +192,13 @@ describe('Merchant application lifecycle (e2e)', () => {
     const reviewed = await submitAndAwaitRisk(ctx, sales, admin, id);
     expect(reviewed.riskLevel).toBe('HIGH');
     await ctx.http
-      .put(`/merchant-applications/${id}/reviewer`)
+      .put(`/api/merchant-applications/${id}/reviewer`)
       .set(auth(admin))
       .send({ reviewerId: reviewer.id })
       .expect(200);
 
     const assessment = await ctx.http
-      .get(`/merchant-applications/${id}/risk-assessment`)
+      .get(`/api/merchant-applications/${id}/risk-assessment`)
       .set(auth(reviewer))
       .expect(200);
     expect(assessment.body.reasons).toEqual([
@@ -209,12 +209,12 @@ describe('Merchant application lifecycle (e2e)', () => {
     expect(assessment.body).not.toHaveProperty('idempotencyKey');
 
     await ctx.http
-      .post(`/merchant-applications/${id}/decision`)
+      .post(`/api/merchant-applications/${id}/decision`)
       .set(auth(reviewer))
       .send({ decision: 'APPROVE' })
       .expect(422);
     await ctx.http
-      .post(`/merchant-applications/${id}/decision`)
+      .post(`/api/merchant-applications/${id}/decision`)
       .set(auth(reviewer))
       .send({ decision: 'APPROVE', reason: 'Enhanced due diligence completed' })
       .expect(200);
@@ -222,12 +222,12 @@ describe('Merchant application lifecycle (e2e)', () => {
 
   it('validates input and rejects inconsistent processing data', async () => {
     await ctx.http
-      .post('/merchant-applications')
+      .post('/api/merchant-applications')
       .set(auth(sales))
       .send({ businessName: 'x' })
       .expect(400);
     const response = await ctx.http
-      .post('/merchant-applications')
+      .post('/api/merchant-applications')
       .set(auth(sales))
       .send({
         businessName: 'Odd Shop',
@@ -254,28 +254,28 @@ describe('Merchant application lifecycle (e2e)', () => {
     }
     const submittedId = await createApplication(ctx, lister, { businessName: 'Submitted Shop' });
     await ctx.http
-      .post(`/merchant-applications/${submittedId}/submit`)
+      .post(`/api/merchant-applications/${submittedId}/submit`)
       .set(auth(lister))
       .expect(202);
 
     const page1 = await ctx.http
-      .get('/merchant-applications?status=DRAFT&page=1&pageSize=2')
+      .get('/api/merchant-applications?status=DRAFT&page=1&pageSize=2')
       .set(auth(lister))
       .expect(200);
     expect(page1.body).toMatchObject({ page: 1, pageSize: 2, totalItems: 3, totalPages: 2 });
     expect(page1.body.items).toHaveLength(2);
 
     const page2 = await ctx.http
-      .get('/merchant-applications?status=DRAFT&page=2&pageSize=2')
+      .get('/api/merchant-applications?status=DRAFT&page=2&pageSize=2')
       .set(auth(lister))
       .expect(200);
     expect(page2.body.items).toHaveLength(1);
 
-    const all = await ctx.http.get('/merchant-applications').set(auth(lister)).expect(200);
+    const all = await ctx.http.get('/api/merchant-applications').set(auth(lister)).expect(200);
     expect(all.body.totalItems).toBe(4);
 
-    await ctx.http.get('/merchant-applications?pageSize=1000').set(auth(lister)).expect(400);
-    await ctx.http.get('/merchant-applications?status=NOPE').set(auth(lister)).expect(400);
+    await ctx.http.get('/api/merchant-applications?pageSize=1000').set(auth(lister)).expect(400);
+    await ctx.http.get('/api/merchant-applications?status=NOPE').set(auth(lister)).expect(400);
   });
 
   it('stores the tax id encrypted at rest', async () => {
@@ -292,7 +292,7 @@ describe('Merchant application lifecycle (e2e)', () => {
   it('a reviewer sees submitted applications but not drafts in the list', async () => {
     const draftId = await createApplication(ctx, sales, { businessName: 'Hidden Draft' });
     const response = await waitFor(
-      () => ctx.http.get('/merchant-applications?pageSize=100').set(auth(reviewer)),
+      () => ctx.http.get('/api/merchant-applications?pageSize=100').set(auth(reviewer)),
       (res) => res.status === 200,
     );
     const ids = response.body.items.map((item: { id: string }) => item.id);

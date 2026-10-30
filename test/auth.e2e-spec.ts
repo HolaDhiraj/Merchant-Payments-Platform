@@ -14,7 +14,7 @@ describe('Authentication (e2e)', () => {
 
   it('issues a bearer token for valid credentials', async () => {
     const response = await ctx.http
-      .post('/auth/login')
+      .post('/api/auth/login')
       .send({ email: sales.email, password: TEST_PASSWORD })
       .expect(200);
     expect(response.body).toMatchObject({ tokenType: 'Bearer', expiresIn: 900 });
@@ -23,11 +23,11 @@ describe('Authentication (e2e)', () => {
 
   it('returns the same generic 401 for wrong password and unknown email', async () => {
     const wrongPassword = await ctx.http
-      .post('/auth/login')
+      .post('/api/auth/login')
       .send({ email: sales.email, password: 'wrong-password-1' })
       .expect(401);
     const unknownEmail = await ctx.http
-      .post('/auth/login')
+      .post('/api/auth/login')
       .send({ email: 'nobody@example.test', password: 'wrong-password-1' })
       .expect(401);
     expect(wrongPassword.body.message).toBe('Invalid credentials');
@@ -35,7 +35,7 @@ describe('Authentication (e2e)', () => {
   });
 
   it('rejects requests without a token', async () => {
-    await ctx.http.get('/merchant-applications').expect(401);
+    await ctx.http.get('/api/merchant-applications').expect(401);
   });
 
   it('rejects a tampered token', async () => {
@@ -47,20 +47,20 @@ describe('Authentication (e2e)', () => {
       }),
     ).toString('base64url');
     await ctx.http
-      .get('/merchant-applications')
+      .get('/api/merchant-applications')
       .set({ Authorization: `Bearer ${header}.${forgedPayload}.invalidsignature` })
       .expect(401);
   });
 
   it('rejects the token of a user who was deactivated after login', async () => {
     const user = await ctx.createUser(Role.SALES, 'deactivated');
-    await ctx.http.get('/merchant-applications').set(auth(user)).expect(200);
+    await ctx.http.get('/api/merchant-applications').set(auth(user)).expect(200);
     await ctx.dataSource.query('UPDATE users SET is_active = false WHERE id = $1', [user.id]);
-    await ctx.http.get('/merchant-applications').set(auth(user)).expect(401);
+    await ctx.http.get('/api/merchant-applications').set(auth(user)).expect(401);
   });
 
   it('keeps /health public', async () => {
-    await ctx.http.get('/health').expect(200, { status: 'ok', database: 'up', redis: 'up' });
+    await ctx.http.get('/api/health').expect(200, { status: 'ok', database: 'up', redis: 'up' });
   });
 
   it('never writes passwords or tokens to the audit trail', async () => {
@@ -73,7 +73,7 @@ describe('Authentication (e2e)', () => {
   });
 
   it('returns a correlation id on every response', async () => {
-    const response = await ctx.http.get('/health').expect(200);
+    const response = await ctx.http.get('/api/health').expect(200);
     expect(response.headers['x-correlation-id']).toBeDefined();
   });
 });

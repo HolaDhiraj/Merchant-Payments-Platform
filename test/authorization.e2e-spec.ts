@@ -33,7 +33,7 @@ describe('Authorization and object-level isolation (e2e)', () => {
   describe("a SALES user cannot read or change another user's application by id", () => {
     it('GET returns 404 (existence is not revealed)', async () => {
       const response = await ctx.http
-        .get(`/merchant-applications/${applicationOfA}`)
+        .get(`/api/merchant-applications/${applicationOfA}`)
         .set(auth(salesB))
         .expect(404);
       expect(JSON.stringify(response.body)).not.toContain('Test Coffee');
@@ -41,7 +41,7 @@ describe('Authorization and object-level isolation (e2e)', () => {
 
     it('PATCH returns 404 and the data is unchanged', async () => {
       await ctx.http
-        .patch(`/merchant-applications/${applicationOfA}`)
+        .patch(`/api/merchant-applications/${applicationOfA}`)
         .set(auth(salesB))
         .send({ businessName: 'Hijacked' })
         .expect(404);
@@ -50,7 +50,7 @@ describe('Authorization and object-level isolation (e2e)', () => {
 
     it('submit returns 404 and the status is unchanged', async () => {
       await ctx.http
-        .post(`/merchant-applications/${applicationOfA}/submit`)
+        .post(`/api/merchant-applications/${applicationOfA}/submit`)
         .set(auth(salesB))
         .expect(404);
       expect((await getAsAdmin(ctx, admin, applicationOfA)).status).toBe('DRAFT');
@@ -58,7 +58,7 @@ describe('Authorization and object-level isolation (e2e)', () => {
 
     it('risk assessment of another user’s application is not readable', async () => {
       await ctx.http
-        .get(`/merchant-applications/${applicationOfA}/risk-assessment`)
+        .get(`/api/merchant-applications/${applicationOfA}/risk-assessment`)
         .set(auth(salesB))
         .expect(404);
     });
@@ -66,7 +66,7 @@ describe('Authorization and object-level isolation (e2e)', () => {
     it('the list endpoint only returns own applications, even with filters', async () => {
       await createApplication(ctx, salesB, { businessName: 'B Shop' });
       const response = await ctx.http
-        .get('/merchant-applications?status=DRAFT')
+        .get('/api/merchant-applications?status=DRAFT')
         .set(auth(salesB))
         .expect(200);
       expect(response.body.items.map((item: { createdById: string }) => item.createdById)).toEqual([
@@ -75,9 +75,9 @@ describe('Authorization and object-level isolation (e2e)', () => {
     });
 
     it('the owner can still read and edit it', async () => {
-      await ctx.http.get(`/merchant-applications/${applicationOfA}`).set(auth(salesA)).expect(200);
+      await ctx.http.get(`/api/merchant-applications/${applicationOfA}`).set(auth(salesA)).expect(200);
       await ctx.http
-        .patch(`/merchant-applications/${applicationOfA}`)
+        .patch(`/api/merchant-applications/${applicationOfA}`)
         .set(auth(salesA))
         .send({ businessName: 'Test Coffee' })
         .expect(200);
@@ -87,25 +87,25 @@ describe('Authorization and object-level isolation (e2e)', () => {
   describe('role restrictions', () => {
     it('SALES cannot assign reviewers, record decisions, retry risk or read audit logs', async () => {
       await ctx.http
-        .put(`/merchant-applications/${applicationOfA}/reviewer`)
+        .put(`/api/merchant-applications/${applicationOfA}/reviewer`)
         .set(auth(salesA))
         .send({ reviewerId: reviewer.id })
         .expect(403);
       await ctx.http
-        .post(`/merchant-applications/${applicationOfA}/decision`)
+        .post(`/api/merchant-applications/${applicationOfA}/decision`)
         .set(auth(salesA))
         .send({ decision: 'APPROVE' })
         .expect(403);
       await ctx.http
-        .post(`/merchant-applications/${applicationOfA}/risk-review/retry`)
+        .post(`/api/merchant-applications/${applicationOfA}/risk-review/retry`)
         .set(auth(salesA))
         .expect(403);
-      await ctx.http.get('/audit-logs').set(auth(salesA)).expect(403);
+      await ctx.http.get('/api/audit-logs').set(auth(salesA)).expect(403);
     });
 
     it('SALES cannot create users (no privilege escalation)', async () => {
       await ctx.http
-        .post('/users')
+        .post('/api/users')
         .set(auth(salesA))
         .send({
           email: 'evil@example.test',
@@ -118,36 +118,36 @@ describe('Authorization and object-level isolation (e2e)', () => {
 
     it('REVIEWER cannot create or edit applications and cannot see drafts', async () => {
       await ctx.http
-        .post('/merchant-applications')
+        .post('/api/merchant-applications')
         .set(auth(reviewer))
         .send(applicationPayload())
         .expect(403);
       await ctx.http
-        .patch(`/merchant-applications/${applicationOfA}`)
+        .patch(`/api/merchant-applications/${applicationOfA}`)
         .set(auth(reviewer))
         .send({ businessName: 'x' })
         .expect(403);
       await ctx.http
-        .get(`/merchant-applications/${applicationOfA}`)
+        .get(`/api/merchant-applications/${applicationOfA}`)
         .set(auth(reviewer))
         .expect(404);
     });
 
     it('rejects mass assignment of protected fields (status, createdById, riskLevel)', async () => {
       await ctx.http
-        .post('/merchant-applications')
+        .post('/api/merchant-applications')
         .set(auth(salesA))
         .send(applicationPayload({ status: 'APPROVED' }))
         .expect(400);
       await ctx.http
-        .patch(`/merchant-applications/${applicationOfA}`)
+        .patch(`/api/merchant-applications/${applicationOfA}`)
         .set(auth(salesA))
         .send({ createdById: salesB.id, riskLevel: 'LOW' })
         .expect(400);
     });
 
     it('rejects malformed ids before touching the database', async () => {
-      await ctx.http.get('/merchant-applications/not-a-uuid').set(auth(admin)).expect(400);
+      await ctx.http.get('/api/merchant-applications/not-a-uuid').set(auth(admin)).expect(400);
     });
   });
 
@@ -160,7 +160,7 @@ describe('Authorization and object-level isolation (e2e)', () => {
 
     it('another reviewer gets 403 and the status does not change', async () => {
       await ctx.http
-        .post(`/merchant-applications/${applicationId}/decision`)
+        .post(`/api/merchant-applications/${applicationId}/decision`)
         .set(auth(otherReviewer))
         .send({ decision: 'APPROVE' })
         .expect(403);
@@ -169,7 +169,7 @@ describe('Authorization and object-level isolation (e2e)', () => {
 
     it('an ADMIN cannot record the decision either (segregation of duties)', async () => {
       await ctx.http
-        .post(`/merchant-applications/${applicationId}/decision`)
+        .post(`/api/merchant-applications/${applicationId}/decision`)
         .set(auth(admin))
         .send({ decision: 'APPROVE' })
         .expect(403);
@@ -177,7 +177,7 @@ describe('Authorization and object-level isolation (e2e)', () => {
 
     it('the assigned reviewer can decide', async () => {
       const response = await ctx.http
-        .post(`/merchant-applications/${applicationId}/decision`)
+        .post(`/api/merchant-applications/${applicationId}/decision`)
         .set(auth(reviewer))
         .send({ decision: 'APPROVE' })
         .expect(200);
@@ -187,7 +187,7 @@ describe('Authorization and object-level isolation (e2e)', () => {
     it('cannot assign a non-reviewer as reviewer', async () => {
       const id = await createApplication(ctx, salesA);
       await ctx.http
-        .put(`/merchant-applications/${id}/reviewer`)
+        .put(`/api/merchant-applications/${id}/reviewer`)
         .set(auth(admin))
         .send({ reviewerId: salesB.id })
         .expect(422);

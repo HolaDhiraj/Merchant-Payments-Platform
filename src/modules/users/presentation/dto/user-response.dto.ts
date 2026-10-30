@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Role } from '../../../../shared/domain/role.enum';
+import { PageMetaDto } from '../../../../shared/presentation/dto/page-response.dto';
 import { User } from '../../domain/user';
 
 // Public representation of a user. The password hash is never included.
@@ -21,4 +22,9 @@ export class UserResponseDto {
       createdAt: user.createdAt,
     };
   }
+}
+
+export class UserPageResponseDto extends PageMetaDto {
+  @ApiProperty({ type: [UserResponseDto] })
+  items: UserResponseDto[];
 }

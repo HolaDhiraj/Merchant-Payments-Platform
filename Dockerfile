@@ -13,7 +13,9 @@ RUN NODE_OPTIONS="$NPM_NODE_OPTIONS" npm ci --no-audit --no-fund --fetch-retries
   && test -x node_modules/.bin/nest
 COPY tsconfig*.json nest-cli.json ./
 COPY src ./src
-RUN npm run build && test -f dist/main.js
+COPY client ./client
+# Builds the API and the web client (into dist/client, served by the API on the same port).
+RUN npm run build && test -f dist/main.js && test -f dist/client/index.html
 
 FROM node:20-alpine AS runtime
 ARG NPM_NODE_OPTIONS

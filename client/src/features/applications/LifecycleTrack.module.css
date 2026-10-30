@@ -1,0 +1,76 @@
+.track {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  margin: 0 0 var(--space-6);
+  padding: 0;
+  list-style: none;
+}
+
+.step {
+  position: relative;
+  display: grid;
+  gap: var(--space-2);
+  padding-right: var(--space-3);
+  color: var(--text-faint);
+  font-size: var(--text-sm);
+}
+
+/* The rail: a line through every step, filled up to the current one. */
+.step::before {
+  content: '';
+  height: 3px;
+  border-radius: 2px;
+  background: var(--border);
+}
+
+.done::before {
+  background: var(--accent);
+}
+
+.current::before {
+  background: linear-gradient(90deg, var(--accent) 50%, var(--border) 50%);
+}
+
+.done,
+.current {
+  color: var(--text);
+}
+
+.current .label {
+  font-weight: 600;
+}
+
+.attention::before {
+  background: var(--attention-text);
+}
+
+.attention {
+  color: var(--attention-text);
+}
+
+.danger::before {
+  background: var(--danger);
+}
+
+.danger {
+  color: var(--danger-text);
+}
+
+.label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+@media (max-width: 640px) {
+  .track {
+    grid-template-columns: repeat(5, minmax(84px, 1fr));
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .label {
+    font-size: var(--text-xs);
+    white-space: nowrap;
+  }
+}

@@ -53,6 +53,7 @@ describe('LoginUseCase', () => {
       findByEmail: async (email) =>
         [activeUser, inactiveUser].find((u) => u.email === email) ?? null,
       insert: async () => undefined,
+      search: async () => ({ items: [], page: 1, pageSize: 20, totalItems: 0, totalPages: 0 }),
     };
     useCase = new LoginUseCase(
       users,

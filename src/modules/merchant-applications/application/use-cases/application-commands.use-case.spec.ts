@@ -85,6 +85,7 @@ describe('Merchant application command use cases', () => {
         })[id] ?? null,
       findByEmail: async () => null,
       insert: async () => undefined,
+      search: async () => ({ items: [], page: 1, pageSize: 20, totalItems: 0, totalPages: 0 }),
     };
 
     create = new CreateMerchantApplicationUseCase(applications, unitOfWork, clock, ids, audit);

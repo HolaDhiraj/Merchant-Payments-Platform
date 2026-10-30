@@ -41,7 +41,7 @@ describe('Asynchronous risk review (e2e)', () => {
     const id = await createApplication(ctx, sales);
 
     const submitted = await ctx.http
-      .post(`/merchant-applications/${id}/submit`)
+      .post(`/api/merchant-applications/${id}/submit`)
       .set(auth(sales))
       .expect(202);
     expect(submitted.body).toMatchObject({ status: 'SUBMITTED', riskStatus: 'PENDING' });
@@ -60,7 +60,7 @@ describe('Asynchronous risk review (e2e)', () => {
   it('marks the review FAILED after all attempts, then an admin retry completes it', async () => {
     ctx.riskProvider.alwaysFailTransiently = true;
     const id = await createApplication(ctx, sales);
-    await ctx.http.post(`/merchant-applications/${id}/submit`).set(auth(sales)).expect(202);
+    await ctx.http.post(`/api/merchant-applications/${id}/submit`).set(auth(sales)).expect(202);
 
     const failed = await waitFor(
       () => getAsAdmin(ctx, admin, id),
@@ -70,7 +70,7 @@ describe('Asynchronous risk review (e2e)', () => {
     expect(ctx.riskProvider.calls).toHaveLength(3); // RISK_REVIEW_MAX_ATTEMPTS in tests
 
     const failureAudit = await ctx.http
-      .get(`/audit-logs?entityId=${id}&action=RISK_REVIEW_FAILED`)
+      .get(`/api/audit-logs?entityId=${id}&action=RISK_REVIEW_FAILED`)
       .set(auth(admin))
       .expect(200);
     expect(failureAudit.body.items).toHaveLength(1);
@@ -78,7 +78,7 @@ describe('Asynchronous risk review (e2e)', () => {
     // Provider recovers; admin re-queues the job
     ctx.riskProvider.reset();
     await ctx.http
-      .post(`/merchant-applications/${id}/risk-review/retry`)
+      .post(`/api/merchant-applications/${id}/risk-review/retry`)
       .set(auth(admin))
       .expect(202);
     const recovered = await waitFor(
@@ -92,7 +92,7 @@ describe('Asynchronous risk review (e2e)', () => {
   it('stops retrying immediately on a permanent provider error', async () => {
     ctx.riskProvider.failPermanently = true;
     const id = await createApplication(ctx, sales);
-    await ctx.http.post(`/merchant-applications/${id}/submit`).set(auth(sales)).expect(202);
+    await ctx.http.post(`/api/merchant-applications/${id}/submit`).set(auth(sales)).expect(202);
 
     await waitFor(
       () => getAsAdmin(ctx, admin, id),
@@ -103,20 +103,20 @@ describe('Asynchronous risk review (e2e)', () => {
 
   it('cannot retry a risk review that already completed', async () => {
     const id = await createApplication(ctx, sales);
-    await ctx.http.post(`/merchant-applications/${id}/submit`).set(auth(sales)).expect(202);
+    await ctx.http.post(`/api/merchant-applications/${id}/submit`).set(auth(sales)).expect(202);
     await waitFor(
       () => getAsAdmin(ctx, admin, id),
       (body) => body.status === 'UNDER_REVIEW',
     );
     await ctx.http
-      .post(`/merchant-applications/${id}/risk-review/retry`)
+      .post(`/api/merchant-applications/${id}/risk-review/retry`)
       .set(auth(admin))
       .expect(409);
   });
 
   it('is idempotent when the same job is enqueued several times', async () => {
     const id = await createApplication(ctx, sales);
-    await ctx.http.post(`/merchant-applications/${id}/submit`).set(auth(sales)).expect(202);
+    await ctx.http.post(`/api/merchant-applications/${id}/submit`).set(auth(sales)).expect(202);
 
     // Simulate duplicate publishes (client retries, at-least-once delivery)
     const queue = ctx.app.get<RiskReviewQueue>(RISK_REVIEW_QUEUE);
@@ -136,7 +136,7 @@ describe('Asynchronous risk review (e2e)', () => {
 
     expect(await assessmentCount(id)).toBe(1);
     const completions = await ctx.http
-      .get(`/audit-logs?entityId=${id}&action=RISK_REVIEW_COMPLETED`)
+      .get(`/api/audit-logs?entityId=${id}&action=RISK_REVIEW_COMPLETED`)
       .set(auth(admin))
       .expect(200);
     expect(completions.body.items).toHaveLength(1);
@@ -174,7 +174,7 @@ describe('Asynchronous risk review (e2e)', () => {
   it('links worker audit entries to the HTTP request that submitted the application', async () => {
     const id = await createApplication(ctx, sales);
     const submitted = await ctx.http
-      .post(`/merchant-applications/${id}/submit`)
+      .post(`/api/merchant-applications/${id}/submit`)
       .set(auth(sales))
       .set('x-correlation-id', 'trace-submit-0001')
       .expect(202);
@@ -185,7 +185,7 @@ describe('Asynchronous risk review (e2e)', () => {
       (body) => body.status === 'UNDER_REVIEW',
     );
     const audit = await ctx.http
-      .get(`/audit-logs?entityId=${id}&action=RISK_REVIEW_COMPLETED`)
+      .get(`/api/audit-logs?entityId=${id}&action=RISK_REVIEW_COMPLETED`)
       .set(auth(admin))
       .expect(200);
     expect(audit.body.items[0].correlationId).toBe('trace-submit-0001');
@@ -194,7 +194,7 @@ describe('Asynchronous risk review (e2e)', () => {
   it('queue payloads contain identifiers only, never merchant data', async () => {
     const id = await createApplication(ctx, sales);
     ctx.riskProvider.alwaysFailTransiently = true;
-    await ctx.http.post(`/merchant-applications/${id}/submit`).set(auth(sales)).expect(202);
+    await ctx.http.post(`/api/merchant-applications/${id}/submit`).set(auth(sales)).expect(202);
     const stored = await waitFor(
       () => ctx.queue.getJob(`risk-review_${id}_1`),
       (job) => job !== undefined,

@@ -1,0 +1,52 @@
+.callout {
+  --callout-bg: var(--info-soft);
+  --callout-fg: var(--info-text);
+
+  display: flex;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius);
+  background: var(--callout-bg);
+  color: var(--text);
+  font-size: var(--text-base);
+}
+
+.icon {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--callout-fg);
+}
+
+.title {
+  font-weight: 600;
+  color: var(--callout-fg);
+}
+
+.body {
+  min-width: 0;
+}
+
+.body ul {
+  margin: var(--space-1) 0 0;
+  padding-left: var(--space-5);
+}
+
+.warning {
+  --callout-bg: var(--warning-soft);
+  --callout-fg: var(--warning-text);
+}
+
+.attention {
+  --callout-bg: var(--attention-soft);
+  --callout-fg: var(--attention-text);
+}
+
+.danger {
+  --callout-bg: var(--danger-soft);
+  --callout-fg: var(--danger-text);
+}
+
+.success {
+  --callout-bg: var(--success-soft);
+  --callout-fg: var(--success-text);
+}

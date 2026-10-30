@@ -1,0 +1,56 @@
+.panel {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  min-width: 0;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-height: 48px;
+  padding: var(--space-3) var(--space-5);
+  border-bottom: 1px solid var(--border);
+}
+
+.title {
+  font-size: var(--text-base);
+  font-weight: 600;
+}
+
+.description {
+  margin-top: 2px;
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+
+.body {
+  padding: var(--space-5);
+}
+
+.flush {
+  padding: 0;
+}
+
+/* Two-column definition list used for record details. */
+.details {
+  display: grid;
+  grid-template-columns: minmax(120px, 34%) 1fr;
+  gap: var(--space-3) var(--space-4);
+  font-size: var(--text-base);
+}
+
+.row {
+  display: contents;
+}
+
+.details dt {
+  color: var(--text-muted);
+}
+
+.details dd {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
