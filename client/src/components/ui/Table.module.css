@@ -76,6 +76,13 @@
   white-space: nowrap;
 }
 
+.serial {
+  width: 56px;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+  text-align: center !important;
+}
+
 .chevron {
   width: 32px;
   color: var(--text-faint);

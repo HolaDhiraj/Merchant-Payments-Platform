@@ -23,6 +23,12 @@ export class UserOrmEntity {
   @Column({ name: 'is_active', type: 'boolean', default: true })
   isActive: boolean;
 
+  @Column({ name: 'failed_login_attempts', type: 'integer', default: 0 })
+  failedLoginAttempts: number;
+
+  @Column({ name: 'locked_at', type: 'timestamptz', nullable: true })
+  lockedAt: Date | null;
+
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt: Date;
 

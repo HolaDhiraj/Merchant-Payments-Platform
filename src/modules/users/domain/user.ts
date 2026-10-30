@@ -9,15 +9,32 @@ export interface UserProps {
   role: Role;
   passwordHash: string;
   isActive: boolean;
+  // Consecutive wrong passwords since the last successful sign-in or unlock.
+  failedLoginAttempts: number;
+  // Set once failedLoginAttempts reaches the lockout threshold; cleared only by an admin.
+  lockedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
+}
+
+export type NewUserProps = Omit<UserProps, 'failedLoginAttempts' | 'lockedAt'>;
+
+// Result of counting one more wrong password against an account.
+export interface LoginFailureState {
+  failedLoginAttempts: number;
+  lockedAt: Date | null;
 }
 
 export class User {
   private constructor(private readonly props: UserProps) {}
 
-  static create(props: UserProps): User {
-    return new User({ ...props, email: User.normaliseEmail(props.email) });
+  static create(props: NewUserProps): User {
+    return new User({
+      ...props,
+      email: User.normaliseEmail(props.email),
+      failedLoginAttempts: 0,
+      lockedAt: null,
+    });
   }
 
   // Rebuilds a user from persistence without re-running creation rules.
@@ -46,6 +63,15 @@ export class User {
   }
   get isActive(): boolean {
     return this.props.isActive;
+  }
+  get failedLoginAttempts(): number {
+    return this.props.failedLoginAttempts;
+  }
+  get lockedAt(): Date | null {
+    return this.props.lockedAt;
+  }
+  get isLocked(): boolean {
+    return this.props.lockedAt !== null;
   }
   get createdAt(): Date {
     return this.props.createdAt;

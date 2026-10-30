@@ -7,13 +7,15 @@ interface PanelProps {
   description?: ReactNode;
   actions?: ReactNode;
   flush?: boolean;
+  /** The body scrolls inside the panel instead of growing the page; cap the height via className. */
+  scrollable?: boolean;
   className?: string;
   children: ReactNode;
 }
 
-export function Panel({ title, description, actions, flush, className, children }: PanelProps) {
+export function Panel({ title, description, actions, flush, scrollable, className, children }: PanelProps) {
   return (
-    <section className={cx(styles.panel, className)}>
+    <section className={cx(styles.panel, scrollable && styles.scrollable, className)}>
       {(title || actions) && (
         <header className={styles.header}>
           <div>
@@ -23,7 +25,7 @@ export function Panel({ title, description, actions, flush, className, children 
           {actions}
         </header>
       )}
-      <div className={cx(styles.body, flush && styles.flush)}>{children}</div>
+      <div className={cx(styles.body, flush && styles.flush, scrollable && styles.scrollBody)}>{children}</div>
     </section>
   );
 }

@@ -9,7 +9,7 @@ import { formatDateTime, formatRelative, humanize } from '@/lib/format';
 import { AUDIT_ACTION_LABEL } from '@/lib/labels';
 import styles from './ActivityPanel.module.css';
 
-const SHOWN = 8;
+const SHOWN = 25;
 
 // A short summary of the event's metadata (keys as recorded by the API's use cases).
 function describe(entry: AuditLogEntry): string | null {
@@ -36,12 +36,19 @@ function describe(entry: AuditLogEntry): string | null {
   }
 }
 
+const pluralEvents = (count: number) => `${count} ${count === 1 ? 'event' : 'events'}`;
+
 // Recent audit events for one application (admins only: the audit API is admin-only).
-export function ActivityPanel({ application }: { application: MerchantApplication }) {
+export function ActivityPanel({ application, className }: { application: MerchantApplication; className?: string }) {
   const audit = useAuditLog({ entityId: application.id, pageSize: SHOWN });
 
   return (
-    <Panel title="Activity">
+    <Panel
+      title="Activity"
+      actions={audit.data && <span className={styles.count}>{pluralEvents(audit.data.totalItems)}</span>}
+      scrollable
+      className={className}
+    >
       {audit.isPending && (
         <div className={styles.loading}>
           <Skeleton width="70%" />

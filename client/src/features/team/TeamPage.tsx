@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useUsers } from '@/api/queries';
-import type { Role } from '@/api/types';
+import type { Role, User } from '@/api/types';
 import { useCurrentUser } from '@/auth/AuthProvider';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Badge } from '@/components/ui/Badge';
@@ -11,21 +11,47 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { Pagination } from '@/components/ui/Pagination';
 import { Panel } from '@/components/ui/Panel';
 import { TableSkeleton } from '@/components/ui/TableSkeleton';
+import { serialNumber } from '@/components/ui/tableSerial';
 import { Tabs } from '@/components/ui/Tabs';
 import table from '@/components/ui/Table.module.css';
 import { cx } from '@/lib/cx';
 import { errorMessage } from '@/lib/errors';
-import { formatDate } from '@/lib/format';
+import { formatDate, formatDateTime } from '@/lib/format';
 import { ROLE_LABEL } from '@/lib/labels';
 import { CreateUserDialog } from './CreateUserDialog';
+import { UnlockUserDialog } from './UnlockUserDialog';
 import styles from './TeamPage.module.css';
 
 type RoleFilter = Role | 'ALL';
+
+function AccountStatus({ user }: { user: User }) {
+  if (!user.isActive) return <Badge dot>Deactivated</Badge>;
+  if (!user.isLocked) {
+    return (
+      <Badge tone="success" dot>
+        Active
+      </Badge>
+    );
+  }
+  return (
+    <>
+      <Badge tone="danger" dot>
+        Locked
+      </Badge>
+      {user.lockedAt && (
+        <span className={table.secondary} title={formatDateTime(user.lockedAt)}>
+          Too many wrong passwords
+        </span>
+      )}
+    </>
+  );
+}
 
 export function TeamPage() {
   const me = useCurrentUser();
   const [params, setParams] = useSearchParams();
   const [creating, setCreating] = useState(false);
+  const [unlocking, setUnlocking] = useState<User | null>(null);
   const role = (params.get('role') as Role | null) ?? undefined;
   const page = Math.max(1, Number(params.get('page')) || 1);
   const query = useUsers({ role, page });
@@ -82,16 +108,21 @@ export function TeamPage() {
                 <table className={table.table}>
                   <thead>
                     <tr>
+                      <th className={table.serial}>S.No</th>
                       <th>Name</th>
                       <th>Role</th>
                       <th>Status</th>
                       <th>Added</th>
+                      <th>
+                        <span className="visually-hidden">Actions</span>
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
-                    {!data && <TableSkeleton columns={4} />}
-                    {data?.items.map((user) => (
+                    {!data && <TableSkeleton columns={6} />}
+                    {data?.items.map((user, index) => (
                       <tr key={user.id}>
+                        <td className={table.serial}>{serialNumber(data.page, data.pageSize, index)}</td>
                         <td>
                           <span className={table.primary}>
                             {user.fullName}
@@ -103,9 +134,16 @@ export function TeamPage() {
                           <Badge tone={user.role === 'ADMIN' ? 'accent' : 'outline'}>{ROLE_LABEL[user.role]}</Badge>
                         </td>
                         <td>
-                          {user.isActive ? <Badge tone="success" dot>Active</Badge> : <Badge dot>Deactivated</Badge>}
+                          <AccountStatus user={user} />
                         </td>
                         <td className={table.muted}>{formatDate(user.createdAt)}</td>
+                        <td className={styles.actions}>
+                          {user.isLocked && (
+                            <Button size="sm" icon="unlock" onClick={() => setUnlocking(user)}>
+                              Unlock
+                            </Button>
+                          )}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -125,6 +163,7 @@ export function TeamPage() {
         </Panel>
       )}
 
+      {unlocking && <UnlockUserDialog user={unlocking} onClose={() => setUnlocking(null)} />}
       {creating && <CreateUserDialog onClose={() => setCreating(false)} />}
     </>
   );

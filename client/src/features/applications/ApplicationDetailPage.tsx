@@ -13,6 +13,7 @@ import { PageLoader } from '@/components/ui/Spinner';
 import { useToast } from '@/components/ui/Toast';
 import { NotFound } from '@/features/errors/NotAllowed';
 import { errorMessage } from '@/lib/errors';
+import { cx } from '@/lib/cx';
 import { formatDateTime, formatMoney, shortId } from '@/lib/format';
 import { BUSINESS_TYPE_LABEL, SALES_CHANNEL_LABEL } from '@/lib/labels';
 import { ActivityPanel } from './ActivityPanel';
@@ -50,6 +51,8 @@ function ApplicationDetail({ application }: { application: MerchantApplication }
   const { processing, owner } = application;
 
   const isResubmission = application.status === 'INFO_REQUESTED';
+  // The audit API is admin-only, so only admins get the activity column.
+  const showActivity = user.role === 'ADMIN';
 
   function handleSubmit() {
     submit.mutate(undefined, {
@@ -100,50 +103,57 @@ function ApplicationDetail({ application }: { application: MerchantApplication }
 
       <DecisionCallout application={application} />
 
-      <div className={styles.grid}>
-        <div className={styles.column}>
-          <Panel title="Business">
-            <DetailList
-              items={[
-                ['Trading name', application.businessName],
-                ['Legal name', application.legalBusinessName],
-                ['Entity type', BUSINESS_TYPE_LABEL[application.businessType]],
-                ['Tax ID', <span className="mono" title="Stored encrypted; only the last digits are shown">{application.taxIdMasked}</span>],
-              ]}
-            />
-          </Panel>
+      <div className={cx(styles.layout, showActivity && styles.withActivity)}>
+        <div className={styles.grid}>
+          <div className={styles.column}>
+            <Panel title="Business">
+              <DetailList
+                items={[
+                  ['Trading name', application.businessName],
+                  ['Legal name', application.legalBusinessName],
+                  ['Entity type', BUSINESS_TYPE_LABEL[application.businessType]],
+                  ['Tax ID', <span className="mono" title="Stored encrypted; only the last digits are shown">{application.taxIdMasked}</span>],
+                ]}
+              />
+            </Panel>
 
-          <Panel title="Owner">
-            <DetailList
-              items={[
-                ['Name', owner.fullName],
-                ['Email', <a href={`mailto:${owner.email}`}>{owner.email}</a>],
-                ['Phone', <span className="mono">{owner.phone}</span>],
-              ]}
-            />
-          </Panel>
+            <Panel title="Owner">
+              <DetailList
+                items={[
+                  ['Name', owner.fullName],
+                  ['Email', <a href={`mailto:${owner.email}`}>{owner.email}</a>],
+                  ['Phone', <span className="mono">{owner.phone}</span>],
+                ]}
+              />
+            </Panel>
 
-          <Panel title="Processing profile">
-            <DetailList
-              items={[
-                ['Monthly volume', <span className="mono">{formatMoney(processing.expectedMonthlyVolumeMinor, processing.currency)}</span>],
-                ['Average ticket', <span className="mono">{formatMoney(processing.averageTicketMinor, processing.currency)}</span>],
-                ['Currency', <span className="mono">{processing.currency.toUpperCase()}</span>],
-                ['Category code', <span className="mono">{processing.merchantCategoryCode}</span>],
-                ['Sales channel', SALES_CHANNEL_LABEL[processing.salesChannel]],
-              ]}
-            />
-          </Panel>
+            <Panel title="Processing profile">
+              <DetailList
+                items={[
+                  ['Monthly volume', <span className="mono">{formatMoney(processing.expectedMonthlyVolumeMinor, processing.currency)}</span>],
+                  ['Average ticket', <span className="mono">{formatMoney(processing.averageTicketMinor, processing.currency)}</span>],
+                  ['Currency', <span className="mono">{processing.currency.toUpperCase()}</span>],
+                  ['Category code', <span className="mono">{processing.merchantCategoryCode}</span>],
+                  ['Sales channel', SALES_CHANNEL_LABEL[processing.salesChannel]],
+                ]}
+              />
+            </Panel>
+          </div>
+
+          <div className={styles.column}>
+            <RiskPanel application={application} user={user} />
+            <ReviewPanel application={application} user={user} onAssign={() => setDialog('assign')} />
+            <p className={styles.stamp}>
+              Created {formatDateTime(application.createdAt)} · Updated {formatDateTime(application.updatedAt)}
+            </p>
+          </div>
         </div>
 
-        <div className={styles.column}>
-          <RiskPanel application={application} user={user} />
-          <ReviewPanel application={application} user={user} onAssign={() => setDialog('assign')} />
-          {user.role === 'ADMIN' && <ActivityPanel application={application} />}
-          <p className={styles.stamp}>
-            Created {formatDateTime(application.createdAt)} · Updated {formatDateTime(application.updatedAt)}
-          </p>
-        </div>
+        {showActivity && (
+          <aside className={styles.aside}>
+            <ActivityPanel application={application} className={styles.activity} />
+          </aside>
+        )}
       </div>
 
       {dialog === 'decision' && <DecisionDialog application={application} onClose={() => setDialog(null)} />}

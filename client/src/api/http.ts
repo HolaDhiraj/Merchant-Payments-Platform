@@ -10,6 +10,7 @@ interface ErrorBody {
   statusCode: number;
   error: string;
   message: string | string[];
+  meta?: Record<string, unknown>;
   correlationId?: string;
 }
 
@@ -17,6 +18,7 @@ export class ApiError extends Error {
   readonly status: number;
   readonly code: string;
   readonly details: string[];
+  readonly meta: Record<string, unknown>;
   readonly correlationId?: string;
 
   constructor(status: number, body: Partial<ErrorBody>) {
@@ -26,6 +28,7 @@ export class ApiError extends Error {
     this.status = status;
     this.code = body.error ?? 'UNKNOWN';
     this.details = details;
+    this.meta = body.meta ?? {};
     this.correlationId = body.correlationId;
   }
 

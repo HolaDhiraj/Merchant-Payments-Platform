@@ -16,17 +16,19 @@ const ICON: Record<CalloutTone, IconName> = {
 interface CalloutProps {
   tone?: CalloutTone;
   title?: ReactNode;
+  // Overrides the tone's default icon.
+  icon?: IconName;
   children?: ReactNode;
   className?: string;
 }
 
-export function Callout({ tone = 'info', title, children, className }: CalloutProps) {
+export function Callout({ tone = 'info', title, icon, children, className }: CalloutProps) {
   return (
     <div
       className={cx(styles.callout, tone !== 'info' && styles[tone], className)}
       role={tone === 'danger' ? 'alert' : undefined}
     >
-      <Icon name={ICON[tone]} className={styles.icon} />
+      <Icon name={icon ?? ICON[tone]} className={styles.icon} />
       <div className={styles.body}>
         {title && <div className={styles.title}>{title}</div>}
         {children}

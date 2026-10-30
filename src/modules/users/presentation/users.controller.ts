@@ -1,5 +1,21 @@
-import { Body, Controller, Get, Post, Query } from '@nestjs/common';
-import { ApiBearerAuth, ApiCreatedResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  ParseUUIDPipe,
+  Post,
+  Query,
+} from '@nestjs/common';
+import {
+  ApiBearerAuth,
+  ApiCreatedResponse,
+  ApiOkResponse,
+  ApiTags,
+  ApiUnprocessableEntityResponse,
+} from '@nestjs/swagger';
 import { Role } from '../../../shared/domain/role.enum';
 import { Actor } from '../../../shared/domain/actor';
 import { mapPage } from '../../../shared/application/pagination';
@@ -8,6 +24,7 @@ import { CurrentActor } from '../../../shared/presentation/decorators/current-ac
 import { CreateUserUseCase } from '../application/create-user.use-case';
 import { GetCurrentUserUseCase } from '../application/get-current-user.use-case';
 import { ListUsersUseCase } from '../application/list-users.use-case';
+import { UnlockUserUseCase } from '../application/unlock-user.use-case';
 import { CreateUserDto } from './dto/create-user.dto';
 import { ListUsersQueryDto } from './dto/list-users-query.dto';
 import { UserPageResponseDto, UserResponseDto } from './dto/user-response.dto';
@@ -20,6 +37,7 @@ export class UsersController {
     private readonly createUser: CreateUserUseCase,
     private readonly listUsers: ListUsersUseCase,
     private readonly getCurrentUser: GetCurrentUserUseCase,
+    private readonly unlockUser: UnlockUserUseCase,
   ) {}
 
   // Admins provision reviewer and sales accounts.
@@ -41,6 +59,19 @@ export class UsersController {
       { page: query.page, pageSize: query.pageSize },
     );
     return mapPage(page, UserResponseDto.fromDomain);
+  }
+
+  // Admins lift a lockout caused by too many wrong passwords.
+  @Post(':id/unlock')
+  @Roles(Role.ADMIN)
+  @HttpCode(HttpStatus.OK)
+  @ApiOkResponse({ type: UserResponseDto })
+  @ApiUnprocessableEntityResponse({ description: 'The account is not locked' })
+  async unlock(
+    @CurrentActor() actor: Actor,
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<UserResponseDto> {
+    return UserResponseDto.fromDomain(await this.unlockUser.execute(actor, id));
   }
 
   // Any signed-in user can read their own profile.

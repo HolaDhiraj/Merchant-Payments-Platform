@@ -10,6 +10,9 @@ export class UserResponseDto {
   @ApiProperty() fullName: string;
   @ApiProperty({ enum: Role }) role: Role;
   @ApiProperty() isActive: boolean;
+  @ApiProperty({ description: 'Locked after too many wrong passwords; an admin can unlock it' })
+  isLocked: boolean;
+  @ApiProperty({ type: Date, nullable: true }) lockedAt: Date | null;
   @ApiProperty() createdAt: Date;
 
   static fromDomain(user: User): UserResponseDto {
@@ -19,6 +22,8 @@ export class UserResponseDto {
       fullName: user.fullName,
       role: user.role,
       isActive: user.isActive,
+      isLocked: user.isLocked,
+      lockedAt: user.lockedAt,
       createdAt: user.createdAt,
     };
   }

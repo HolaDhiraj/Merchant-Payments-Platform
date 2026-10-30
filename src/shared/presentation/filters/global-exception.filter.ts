@@ -9,6 +9,7 @@ import {
 import { Request, Response } from 'express';
 import {
   AccessDeniedError,
+  AccountLockedError,
   AuthenticationFailedError,
   BusinessRuleViolationError,
   ConcurrencyConflictError,
@@ -32,12 +33,14 @@ const DOMAIN_ERROR_STATUS = new Map<DomainErrorClass, HttpStatus>([
   [DuplicateEntityError, HttpStatus.CONFLICT],
   [BusinessRuleViolationError, HttpStatus.UNPROCESSABLE_ENTITY],
   [AuthenticationFailedError, HttpStatus.UNAUTHORIZED],
+  [AccountLockedError, HttpStatus.LOCKED],
 ]);
 
 interface ErrorBody {
   statusCode: number;
   error: string;
   message: string | string[];
+  meta?: Record<string, unknown>;
   path: string;
   correlationId?: string;
   timestamp: string;
@@ -52,11 +55,12 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     const request = context.getRequest<Request>();
     const response = context.getResponse<Response>();
 
-    const { statusCode, error, message } = this.resolve(exception);
+    const { statusCode, error, message, meta } = this.resolve(exception);
     const body: ErrorBody = {
       statusCode,
       error,
       message,
+      ...(meta && { meta }),
       path: request.path,
       correlationId: RequestContext.correlationId(),
       timestamp: new Date().toISOString(),
@@ -71,12 +75,14 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     response.status(statusCode).json(body);
   }
 
-  private resolve(exception: unknown): Pick<ErrorBody, 'statusCode' | 'error' | 'message'> {
+  private resolve(
+    exception: unknown,
+  ): Pick<ErrorBody, 'statusCode' | 'error' | 'message' | 'meta'> {
     if (exception instanceof DomainError) {
       const statusCode =
         DOMAIN_ERROR_STATUS.get(exception.constructor as DomainErrorClass) ??
         HttpStatus.UNPROCESSABLE_ENTITY;
-      return { statusCode, error: exception.code, message: exception.message };
+      return { statusCode, error: exception.code, message: exception.message, meta: exception.meta };
     }
 
     if (exception instanceof HttpException) {

@@ -30,6 +30,7 @@ export const securityConfig = registerAs('security', () => ({
   fieldEncryptionKey: process.env.FIELD_ENCRYPTION_KEY as string,
   loginThrottleLimit: Number(process.env.LOGIN_THROTTLE_LIMIT ?? 5),
   loginThrottleTtlSeconds: Number(process.env.LOGIN_THROTTLE_TTL_SECONDS ?? 60),
+  loginLockoutThreshold: Number(process.env.LOGIN_LOCKOUT_THRESHOLD ?? 5),
 }));
 
 export const riskReviewConfig = registerAs('riskReview', () => ({

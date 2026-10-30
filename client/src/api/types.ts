@@ -21,6 +21,8 @@ export type AuditAction =
   | 'USER_CREATED'
   | 'LOGIN_SUCCEEDED'
   | 'LOGIN_FAILED'
+  | 'USER_LOCKED'
+  | 'USER_UNLOCKED'
   | 'APPLICATION_CREATED'
   | 'APPLICATION_UPDATED'
   | 'APPLICATION_SUBMITTED'
@@ -44,6 +46,9 @@ export interface User {
   fullName: string;
   role: Role;
   isActive: boolean;
+  // Locked after too many wrong passwords; only an admin can unlock.
+  isLocked: boolean;
+  lockedAt: string | null;
   createdAt: string;
 }
 

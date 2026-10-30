@@ -43,4 +43,6 @@ export const envValidationSchema = Joi.object({
 
   LOGIN_THROTTLE_LIMIT: Joi.number().integer().min(1).default(5),
   LOGIN_THROTTLE_TTL_SECONDS: Joi.number().integer().min(1).default(60),
+  // Consecutive wrong passwords before an account is locked until an admin unlocks it.
+  LOGIN_LOCKOUT_THRESHOLD: Joi.number().integer().min(3).max(20).default(5),
 });

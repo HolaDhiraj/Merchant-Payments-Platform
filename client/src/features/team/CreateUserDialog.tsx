@@ -4,7 +4,7 @@ import type { Role } from '@/api/types';
 import { Button } from '@/components/ui/Button';
 import { Callout } from '@/components/ui/Callout';
 import { Dialog } from '@/components/ui/Dialog';
-import { Field, Input, Select } from '@/components/ui/Field';
+import { Field, Input, PasswordInput, Select } from '@/components/ui/Field';
 import { useToast } from '@/components/ui/Toast';
 import { errorMessage } from '@/lib/errors';
 import { ROLE_LABEL } from '@/lib/labels';
@@ -90,7 +90,12 @@ export function CreateUserDialog({ onClose }: { onClose(): void }) {
         </Select>
       </Field>
       <Field label="Temporary password" error={errors.password} hint="12+ characters with letters and digits.">
-        <Input type="password" value={values.password} onChange={(event) => set('password', event.target.value)} autoComplete="new-password" />
+        <PasswordInput
+          value={values.password}
+          onChange={(event) => set('password', event.target.value)}
+          autoComplete="new-password"
+          className="mono"
+        />
       </Field>
     </Dialog>
   );

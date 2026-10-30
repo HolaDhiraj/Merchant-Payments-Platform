@@ -206,7 +206,7 @@ function ApplicationForm({ mode, initial, application, saving, error, onSave }: 
 
         <Panel title="Owner" description="The person accountable for the merchant account.">
           <div className={styles.fields}>
-            <Field label="Full name" error={errors.ownerName} className={styles.full}>
+            <Field label="Full name" error={errors.ownerName}>
               <Input {...bind('ownerName')} autoComplete="off" />
             </Field>
             <Field label="Email" error={errors.ownerEmail}>

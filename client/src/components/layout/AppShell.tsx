@@ -97,9 +97,7 @@ export function AppShell() {
       </aside>
 
       <main className={styles.main}>
-        <div className={styles.content}>
-          <Outlet />
-        </div>
+        <Outlet />
       </main>
     </div>
   );

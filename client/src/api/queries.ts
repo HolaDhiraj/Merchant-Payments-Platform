@@ -63,6 +63,17 @@ export function useCreateUser() {
   });
 }
 
+export function useUnlockUser() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => usersApi.unlock(id),
+    onSuccess: () => {
+      client.invalidateQueries({ queryKey: ['users'] });
+      client.invalidateQueries({ queryKey: ['audit'] });
+    },
+  });
+}
+
 // Applications
 
 export function useApplications(query: ApplicationListQuery) {

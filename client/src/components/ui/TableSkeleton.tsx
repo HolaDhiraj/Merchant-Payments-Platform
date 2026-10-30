@@ -8,9 +8,9 @@ export function TableSkeleton({ columns, rows = 6 }: { columns: number; rows?: n
       {Array.from({ length: rows }, (_, row) => (
         <tr key={row} aria-hidden="true">
           {Array.from({ length: columns }, (_, column) => (
-            <td key={column}>
-              <Skeleton width={column === 0 ? '70%' : `${40 + ((row + column) % 3) * 15}%`} />
-              {column === 0 && (
+            <td key={column} className={column === 0 ? styles.serial : undefined}>
+              <Skeleton width={column === 0 ? 16 : column === 1 ? '70%' : `${40 + ((row + column) % 3) * 15}%`} />
+              {column === 1 && (
                 <span className={styles.secondary}>
                   <Skeleton width="45%" height={10} />
                 </span>
