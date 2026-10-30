@@ -5,6 +5,7 @@ import { MerchantApplicationOrmEntity } from '../../modules/merchant-application
 import { RiskAssessmentOrmEntity } from '../../modules/merchant-applications/infrastructure/persistence/risk-assessment.orm-entity';
 import { InitialSchema1730000000000 } from './migrations/1730000000000-InitialSchema';
 import { OutboxAndWebhookInbox1730000000001 } from './migrations/1730000000001-OutboxAndWebhookInbox';
+import { UserLoginLockout1730000000002 } from './migrations/1730000000002-UserLoginLockout';
 import { OutboxMessageOrmEntity } from '../../shared/infrastructure/outbox/outbox-message.orm-entity';
 import { ProcessedWebhookEventOrmEntity } from '../../modules/merchant-applications/infrastructure/webhooks/processed-webhook-event.orm-entity';
 
@@ -36,7 +37,11 @@ export function buildTypeOrmOptions(settings: DatabaseConnectionSettings): DataS
       OutboxMessageOrmEntity,
       ProcessedWebhookEventOrmEntity,
     ],
-    migrations: [InitialSchema1730000000000, OutboxAndWebhookInbox1730000000001],
+    migrations: [
+      InitialSchema1730000000000,
+      OutboxAndWebhookInbox1730000000001,
+      UserLoginLockout1730000000002,
+    ],
     migrationsTableName: 'schema_migrations',
     synchronize: false,
     // Tests deliberately trigger constraint violations (idempotency races), so SQL logging is off there.

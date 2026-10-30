@@ -10,6 +10,7 @@ import { Icon } from '@/components/ui/Icon';
 import { Pagination } from '@/components/ui/Pagination';
 import { Panel } from '@/components/ui/Panel';
 import { TableSkeleton } from '@/components/ui/TableSkeleton';
+import { serialNumber } from '@/components/ui/tableSerial';
 import { Tabs } from '@/components/ui/Tabs';
 import table from '@/components/ui/Table.module.css';
 import { cx } from '@/lib/cx';
@@ -121,6 +122,7 @@ export function ApplicationsPage() {
                 <table className={table.table}>
                   <thead>
                     <tr>
+                      <th className={table.serial}>S.No</th>
                       <th>Merchant</th>
                       <th>Status</th>
                       <th>Risk</th>
@@ -130,13 +132,14 @@ export function ApplicationsPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {!data && <TableSkeleton columns={6} />}
-                    {data?.items.map((application) => (
+                    {!data && <TableSkeleton columns={7} />}
+                    {data?.items.map((application, index) => (
                       <tr
                         key={application.id}
                         className={table.clickable}
                         onClick={() => navigate(`/applications/${application.id}`)}
                       >
+                        <td className={table.serial}>{serialNumber(data.page, data.pageSize, index)}</td>
                         <td>
                           {/* A real link keeps keyboard navigation and "open in new tab" working. */}
                           <Link

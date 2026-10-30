@@ -3,7 +3,11 @@
 export abstract class DomainError extends Error {
   abstract readonly code: string;
 
-  protected constructor(message: string) {
+  // Optional machine-readable details for clients (e.g. remaining sign-in attempts).
+  protected constructor(
+    message: string,
+    readonly meta?: Record<string, unknown>,
+  ) {
     super(message);
     this.name = new.target.name;
   }
@@ -67,7 +71,18 @@ export class DuplicateEntityError extends DomainError {
 export class AuthenticationFailedError extends DomainError {
   readonly code = 'AUTHENTICATION_FAILED';
 
-  constructor(message = 'Invalid credentials') {
-    super(message);
+  constructor(message = 'Invalid credentials', meta?: Record<string, unknown>) {
+    super(message, meta);
+  }
+}
+
+// Too many consecutive wrong passwords; only an admin can unlock the account.
+export class AccountLockedError extends DomainError {
+  readonly code = 'ACCOUNT_LOCKED';
+
+  constructor() {
+    super(
+      'This account is locked after too many failed sign-in attempts. Contact an administrator to unlock it.',
+    );
   }
 }

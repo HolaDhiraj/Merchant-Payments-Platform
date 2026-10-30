@@ -264,6 +264,8 @@ Each entry stores actor id and role (or `SYSTEM` for the worker), entity, redact
 
 **Secrets:** no secret is committed. `.env` is git-ignored, `.env.example` holds only `CHANGE_ME` placeholders (rejected by Joi validation at boot), `npm run env:init` generates local secrets, and tests generate their own per run. Test data is synthetic (`example.test` domains, fake tax ids).
 
+Account lockout: consecutive wrong passwords are counted per account with one atomic `UPDATE ... RETURNING`, so parallel attempts cannot slip past the limit. When two attempts are left, the 401 says so (`meta.remainingAttempts`, shown as a warning on the sign-in page). On the fifth wrong password (`LOGIN_LOCKOUT_THRESHOLD`) the account locks: login returns `423 ACCOUNT_LOCKED`, even with the right password, until an admin unlocks it from the Team page (`POST /users/:id/unlock`). A successful sign-in resets the counter. Locks and unlocks are written to the audit log. Trade-off: the warning and the lock reveal that an account exists, but only after several wrong guesses and behind the per-IP rate limit.
+
 Other hardening: `helmet`, login rate limiting (`@nestjs/throttler`, default 5 per minute per IP), timing-safe login (a hash comparison always runs, with one generic error), JWT with issuer and audience checks, HS256 pinned, 15-minute expiry.
 
 ---
@@ -292,6 +294,7 @@ Full, interactive documentation: **`/api/docs`** (Swagger / OpenAPI). Every path
 | POST | `/users` | ADMIN |
 | GET | `/users?role=&page=&pageSize=` | ADMIN |
 | GET | `/users/me` | any signed-in user |
+| POST | `/users/:id/unlock` | ADMIN |
 | POST | `/merchant-applications` | SALES, ADMIN |
 | GET | `/merchant-applications?status=&page=&pageSize=&assignedToMe=` | all (scoped) |
 | GET | `/merchant-applications/:id` | all (scoped) |

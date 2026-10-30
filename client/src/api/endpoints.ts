@@ -27,6 +27,7 @@ export const usersApi = {
   list: (query: { role?: Role; page?: number; pageSize?: number }) =>
     request<Page<User>>('/users', { query: { ...query } }),
   create: (input: CreateUserInput) => request<User>('/users', { method: 'POST', body: input }),
+  unlock: (id: string) => request<User>(`/users/${id}/unlock`, { method: 'POST' }),
 };
 
 export interface ApplicationListQuery {

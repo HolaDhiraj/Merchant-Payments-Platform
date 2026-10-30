@@ -4,7 +4,7 @@ import { TransactionalEntityManager } from '../../../shared/infrastructure/datab
 import { isUniqueViolation } from '../../../shared/infrastructure/database/postgres-errors';
 import { DuplicateEntityError } from '../../../shared/domain/domain-errors';
 import { buildPage, Page, PageRequest } from '../../../shared/application/pagination';
-import { User } from '../domain/user';
+import { LoginFailureState, User } from '../domain/user';
 import { UserRepository, UserSearchCriteria } from '../domain/user.repository';
 import { UserOrmEntity } from './user.orm-entity';
 
@@ -36,6 +36,8 @@ export class TypeOrmUserRepository implements UserRepository {
         role: user.role,
         passwordHash: user.passwordHash,
         isActive: user.isActive,
+        failedLoginAttempts: user.failedLoginAttempts,
+        lockedAt: user.lockedAt,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
       });
@@ -60,6 +62,27 @@ export class TypeOrmUserRepository implements UserRepository {
       total,
       page,
     );
+  }
+
+  async recordFailedLogin(id: string, lockAfter: number, now: Date): Promise<LoginFailureState> {
+    // One UPDATE ... RETURNING: the increment and the lock decision happen in the same statement.
+    const result = await this.repository
+      .createQueryBuilder()
+      .update(UserOrmEntity)
+      .set({
+        failedLoginAttempts: () => 'failed_login_attempts + 1',
+        lockedAt: () =>
+          'CASE WHEN locked_at IS NULL AND failed_login_attempts + 1 >= :lockAfter THEN :now::timestamptz ELSE locked_at END',
+      })
+      .where('id = :id', { id, lockAfter, now })
+      .returning('failed_login_attempts, locked_at')
+      .execute();
+    const [row] = result.raw as Array<{ failed_login_attempts: number; locked_at: Date | null }>;
+    return { failedLoginAttempts: row.failed_login_attempts, lockedAt: row.locked_at };
+  }
+
+  async clearLoginFailures(id: string): Promise<void> {
+    await this.repository.update({ id }, { failedLoginAttempts: 0, lockedAt: null });
   }
 
   private toDomain(row: UserOrmEntity): User {

@@ -10,6 +10,7 @@ import { Field, Input, Select } from '@/components/ui/Field';
 import { Pagination } from '@/components/ui/Pagination';
 import { Panel } from '@/components/ui/Panel';
 import { TableSkeleton } from '@/components/ui/TableSkeleton';
+import { serialNumber } from '@/components/ui/tableSerial';
 import table from '@/components/ui/Table.module.css';
 import { cx } from '@/lib/cx';
 import { errorMessage } from '@/lib/errors';
@@ -100,6 +101,7 @@ export function AuditLogPage() {
                 <table className={table.table}>
                   <thead>
                     <tr>
+                      <th className={table.serial}>S.No</th>
                       <th>When</th>
                       <th>Action</th>
                       <th>Actor</th>
@@ -108,9 +110,10 @@ export function AuditLogPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {!data && <TableSkeleton columns={5} />}
-                    {data?.items.map((entry) => (
+                    {!data && <TableSkeleton columns={6} />}
+                    {data?.items.map((entry, index) => (
                       <tr key={entry.id}>
+                        <td className={table.serial}>{serialNumber(data.page, data.pageSize, index)}</td>
                         <td className={table.muted} title={formatDateTime(entry.occurredAt)}>
                           {formatRelative(entry.occurredAt)}
                           <span className={table.secondary}>{formatDateTime(entry.occurredAt)}</span>

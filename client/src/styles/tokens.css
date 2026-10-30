@@ -29,7 +29,6 @@
   --control-height: 34px;
   --control-height-sm: 28px;
   --sidebar-width: 236px;
-  --content-max: 1180px;
 
   --ease: cubic-bezier(0.2, 0, 0, 1);
   --duration: 140ms;
@@ -66,6 +65,10 @@
   --danger-hover: #952f22;
   --danger-soft: #f7e3df;
   --danger-text: #9c3022;
+
+  /* Deep brand green for full-bleed brand surfaces (sign-in). */
+  --brand-deep: #173f34;
+  --brand-deep-text: #eef3ef;
 
   --shadow-overlay: 0 1px 2px rgb(28 27 24 / 6%), 0 12px 32px -8px rgb(28 27 24 / 22%);
   --backdrop: rgb(28 27 24 / 32%);
@@ -106,6 +109,9 @@
   --danger-hover: #e57a67;
   --danger-soft: #3a201b;
   --danger-text: #f0927f;
+
+  --brand-deep: #0f2620;
+  --brand-deep-text: #e3ece6;
 
   --shadow-overlay: 0 1px 2px rgb(0 0 0 / 30%), 0 16px 40px -8px rgb(0 0 0 / 60%);
   --backdrop: rgb(0 0 0 / 55%);

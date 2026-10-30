@@ -1,8 +1,29 @@
-.grid {
+/* Record panels on the left; for admins, the activity feed gets its own column on the right. */
+.layout {
   display: grid;
-  grid-template-columns: minmax(0, 1.55fr) minmax(300px, 1fr);
   gap: var(--space-5);
   align-items: start;
+}
+
+.withActivity {
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-5);
+  align-items: start;
+}
+
+/* Stays in view while the record scrolls; the feed scrolls inside it rather than stretching the page. */
+.aside {
+  position: sticky;
+  top: var(--space-6);
+}
+
+.activity {
+  max-height: calc(100vh - 2 * var(--space-6));
 }
 
 .column {
@@ -58,8 +79,22 @@
   margin-left: var(--space-2);
 }
 
+@media (max-width: 1280px) {
+  .withActivity {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .aside {
+    position: static;
+  }
+
+  .activity {
+    max-height: 440px;
+  }
+}
+
 @media (max-width: 960px) {
   .grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 }

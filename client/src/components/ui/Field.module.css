@@ -1,5 +1,6 @@
 .field {
   display: grid;
+  align-content: start;
   gap: 6px;
   min-width: 0;
 }
@@ -103,4 +104,45 @@ select.control {
 
 .affixed .control {
   padding-left: calc(var(--space-3) + var(--prefix-width, 3ch) + var(--space-2));
+}
+
+.password {
+  position: relative;
+}
+
+.password .control {
+  padding-right: calc(var(--control-height) + var(--space-1));
+}
+
+.reveal {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  display: grid;
+  place-items: center;
+  width: calc(var(--control-height) - 6px);
+  height: calc(var(--control-height) - 6px);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--text-faint);
+  cursor: pointer;
+  transition:
+    background var(--duration) var(--ease),
+    color var(--duration) var(--ease);
+}
+
+.reveal:hover:not(:disabled) {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+.reveal:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--focus-ring);
+}
+
+.reveal[aria-pressed='true'] {
+  color: var(--accent-text);
 }

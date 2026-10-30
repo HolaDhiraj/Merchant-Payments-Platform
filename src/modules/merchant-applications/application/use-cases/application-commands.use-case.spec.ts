@@ -50,6 +50,8 @@ function user(id: string, role: Role, isActive = true): User {
     role,
     passwordHash: 'x',
     isActive,
+    failedLoginAttempts: 0,
+    lockedAt: null,
     createdAt: now,
     updatedAt: now,
   });
@@ -86,6 +88,8 @@ describe('Merchant application command use cases', () => {
       findByEmail: async () => null,
       insert: async () => undefined,
       search: async () => ({ items: [], page: 1, pageSize: 20, totalItems: 0, totalPages: 0 }),
+      recordFailedLogin: async () => ({ failedLoginAttempts: 1, lockedAt: null }),
+      clearLoginFailures: async () => undefined,
     };
 
     create = new CreateMerchantApplicationUseCase(applications, unitOfWork, clock, ids, audit);

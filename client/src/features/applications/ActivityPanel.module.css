@@ -54,6 +54,12 @@
   overflow-wrap: anywhere;
 }
 
+.count {
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+}
+
 .footer {
   padding-top: var(--space-2);
   font-size: var(--text-sm);

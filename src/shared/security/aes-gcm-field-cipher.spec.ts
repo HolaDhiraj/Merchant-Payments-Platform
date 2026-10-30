@@ -6,6 +6,7 @@ function cipherWith(key: Buffer): AesGcmFieldCipher {
     fieldEncryptionKey: key.toString('base64'),
     loginThrottleLimit: 5,
     loginThrottleTtlSeconds: 60,
+    loginLockoutThreshold: 5,
   });
 }
 

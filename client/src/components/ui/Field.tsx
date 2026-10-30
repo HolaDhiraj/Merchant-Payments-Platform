@@ -1,4 +1,4 @@
-import { cloneElement, forwardRef, isValidElement, useId } from 'react';
+import { cloneElement, forwardRef, isValidElement, useId, useState } from 'react';
 import type {
   CSSProperties,
   InputHTMLAttributes,
@@ -71,6 +71,37 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
     </div>
   );
 });
+
+// Password field with a show/hide toggle. Field's id and aria attributes land on the input.
+export const PasswordInput = forwardRef<HTMLInputElement, Omit<InputHTMLAttributes<HTMLInputElement>, 'type'>>(
+  function PasswordInput({ className, disabled, ...rest }, ref) {
+    const [visible, setVisible] = useState(false);
+    return (
+      <div className={styles.password}>
+        <input
+          ref={ref}
+          type={visible ? 'text' : 'password'}
+          className={cx(styles.control, className)}
+          disabled={disabled}
+          spellCheck={false}
+          autoCapitalize="off"
+          {...rest}
+        />
+        <button
+          type="button"
+          className={styles.reveal}
+          onClick={() => setVisible((current) => !current)}
+          disabled={disabled}
+          aria-label={visible ? 'Hide password' : 'Show password'}
+          aria-pressed={visible}
+          title={visible ? 'Hide password' : 'Show password'}
+        >
+          <Icon name={visible ? 'eyeOff' : 'eye'} />
+        </button>
+      </div>
+    );
+  },
+);
 
 export const Select = forwardRef<HTMLSelectElement, SelectHTMLAttributes<HTMLSelectElement>>(
   function Select({ className, ...rest }, ref) {
