@@ -17,6 +17,7 @@ export interface UserRepository {
   recordFailedLogin(id: string, lockAfter: number, now: Date): Promise<LoginFailureState>;
   // Resets the counter and lifts any lock (successful sign-in or admin unlock).
   clearLoginFailures(id: string): Promise<void>;
+  setActive(id: string, isActive: boolean): Promise<void>;
 }
 
 export const USER_REPOSITORY = Symbol('USER_REPOSITORY');

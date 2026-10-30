@@ -74,6 +74,17 @@ export function useUnlockUser() {
   });
 }
 
+export function useSetUserActive() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) => usersApi.setActive(id, isActive),
+    onSuccess: () => {
+      client.invalidateQueries({ queryKey: ['users'] });
+      client.invalidateQueries({ queryKey: ['audit'] });
+    },
+  });
+}
+
 // Applications
 
 export function useApplications(query: ApplicationListQuery) {

@@ -23,6 +23,7 @@
     "migration:run:prod": "typeorm -d dist/infrastructure/database/data-source.js migration:run",
     "seed": "ts-node -r tsconfig-paths/register src/infrastructure/database/seeds/seed-users.ts",
     "seed:prod": "node dist/infrastructure/database/seeds/seed-users.js",
+    "seed:demo": "ts-node -r tsconfig-paths/register src/infrastructure/database/seeds/seed-demo-applications.ts",
     "test": "jest --config jest.config.ts",
     "test:cov": "jest --config jest.config.ts --coverage",
     "test:integration": "jest --config test/jest-integration.config.ts --runInBand",

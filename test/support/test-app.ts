@@ -48,6 +48,8 @@ export async function createTestContext(): Promise<TestContext> {
   await app.init();
 
   const dataSource = app.get(DataSource);
+  const schema = (dataSource.options as { schema?: string }).schema ?? 'public';
+  await dataSource.query(`CREATE SCHEMA IF NOT EXISTS "${schema}"`);
   await dataSource.runMigrations();
   await dataSource.query(
     'TRUNCATE TABLE audit_logs, risk_assessments, merchant_applications, users, outbox_messages, processed_webhook_events RESTART IDENTITY CASCADE',

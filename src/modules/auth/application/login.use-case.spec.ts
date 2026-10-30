@@ -1,6 +1,7 @@
 import { Role } from '../../../shared/domain/role.enum';
 import { SecurityConfig } from '../../../config/app.config';
 import {
+  AccountDeactivatedError,
   AccountLockedError,
   AuthenticationFailedError,
 } from '../../../shared/domain/domain-errors';
@@ -76,6 +77,9 @@ describe('LoginUseCase', () => {
       clearLoginFailures: async (id) => {
         Object.assign(rows.get(id)!, { failedLoginAttempts: 0, lockedAt: null });
       },
+      setActive: async (id, isActive) => {
+        rows.get(id)!.isActive = isActive;
+      },
     };
     const clock = new FixedClock();
     useCase = new LoginUseCase(
@@ -109,11 +113,21 @@ describe('LoginUseCase', () => {
   it.each([
     ['wrong password', 'sales@example.test', 'nope'],
     ['unknown email', 'ghost@example.test', 'test-password'],
-    ['inactive user', 'inactive@example.test', 'test-password'],
+    ['wrong password on a deactivated account', 'inactive@example.test', 'nope'],
   ])('fails with the same generic error for %s', async (_case, email, password) => {
     await expect(useCase.execute({ email, password })).rejects.toThrow(
       new AuthenticationFailedError(),
     );
+  });
+
+  it('tells a deactivated user with the right password to contact an administrator', async () => {
+    await expect(
+      useCase.execute({ email: 'inactive@example.test', password: 'test-password' }),
+    ).rejects.toBeInstanceOf(AccountDeactivatedError);
+    expect(auditLog.entries[0]).toMatchObject({
+      action: AuditAction.LOGIN_FAILED,
+      metadata: { reason: 'INACTIVE_USER' },
+    });
   });
 
   it('still runs a hash comparison for unknown emails (timing-safe)', async () => {

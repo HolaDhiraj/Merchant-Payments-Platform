@@ -5,6 +5,7 @@ import {
   HttpCode,
   HttpStatus,
   Param,
+  Patch,
   ParseUUIDPipe,
   Post,
   Query,
@@ -24,9 +25,11 @@ import { CurrentActor } from '../../../shared/presentation/decorators/current-ac
 import { CreateUserUseCase } from '../application/create-user.use-case';
 import { GetCurrentUserUseCase } from '../application/get-current-user.use-case';
 import { ListUsersUseCase } from '../application/list-users.use-case';
+import { SetUserActiveUseCase } from '../application/set-user-active.use-case';
 import { UnlockUserUseCase } from '../application/unlock-user.use-case';
 import { CreateUserDto } from './dto/create-user.dto';
 import { ListUsersQueryDto } from './dto/list-users-query.dto';
+import { UpdateUserStatusDto } from './dto/update-user-status.dto';
 import { UserPageResponseDto, UserResponseDto } from './dto/user-response.dto';
 
 @ApiTags('Users')
@@ -38,6 +41,7 @@ export class UsersController {
     private readonly listUsers: ListUsersUseCase,
     private readonly getCurrentUser: GetCurrentUserUseCase,
     private readonly unlockUser: UnlockUserUseCase,
+    private readonly setUserActive: SetUserActiveUseCase,
   ) {}
 
   // Admins provision reviewer and sales accounts.
@@ -72,6 +76,19 @@ export class UsersController {
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<UserResponseDto> {
     return UserResponseDto.fromDomain(await this.unlockUser.execute(actor, id));
+  }
+
+  // Admins deactivate an account (sign-in refused, sessions end) or reactivate it.
+  @Patch(':id/status')
+  @Roles(Role.ADMIN)
+  @ApiOkResponse({ type: UserResponseDto })
+  @ApiUnprocessableEntityResponse({ description: 'An admin cannot deactivate their own account' })
+  async updateStatus(
+    @CurrentActor() actor: Actor,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateUserStatusDto,
+  ): Promise<UserResponseDto> {
+    return UserResponseDto.fromDomain(await this.setUserActive.execute(actor, id, dto.isActive));
   }
 
   // Any signed-in user can read their own profile.

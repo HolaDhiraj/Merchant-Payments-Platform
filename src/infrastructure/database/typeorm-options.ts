@@ -13,6 +13,7 @@ export interface DatabaseConnectionSettings {
   host: string;
   port: number;
   name: string;
+  schema: string;
   user: string;
   password: string;
   ssl: boolean;
@@ -26,6 +27,10 @@ export function buildTypeOrmOptions(settings: DatabaseConnectionSettings): DataS
     host: settings.host,
     port: settings.port,
     database: settings.name,
+    // Entities, the migrations table and every unqualified name in raw SQL resolve to this schema
+    // only (search_path has no fallback), so a shared database's other schemas are never touched.
+    schema: settings.schema,
+    extra: { options: `-c search_path=${settings.schema}` },
     username: settings.user,
     password: settings.password,
     ssl: settings.ssl ? { rejectUnauthorized: true } : false,

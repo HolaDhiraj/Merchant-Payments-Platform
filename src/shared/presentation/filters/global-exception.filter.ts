@@ -9,6 +9,7 @@ import {
 import { Request, Response } from 'express';
 import {
   AccessDeniedError,
+  AccountDeactivatedError,
   AccountLockedError,
   AuthenticationFailedError,
   BusinessRuleViolationError,
@@ -34,6 +35,7 @@ const DOMAIN_ERROR_STATUS = new Map<DomainErrorClass, HttpStatus>([
   [BusinessRuleViolationError, HttpStatus.UNPROCESSABLE_ENTITY],
   [AuthenticationFailedError, HttpStatus.UNAUTHORIZED],
   [AccountLockedError, HttpStatus.LOCKED],
+  [AccountDeactivatedError, HttpStatus.FORBIDDEN],
 ]);
 
 interface ErrorBody {

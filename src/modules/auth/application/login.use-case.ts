@@ -3,6 +3,7 @@ import { randomBytes } from 'crypto';
 import { securityConfig, SecurityConfig } from '../../../config/app.config';
 import { Clock, CLOCK } from '../../../shared/domain/clock';
 import {
+  AccountDeactivatedError,
   AccountLockedError,
   AuthenticationFailedError,
 } from '../../../shared/domain/domain-errors';
@@ -22,8 +23,9 @@ export interface LoginCommand {
 export const LOCKOUT_WARNING_REMAINING = 2;
 
 // Exchanges valid credentials for a short-lived access token.
-// The same generic error is returned for unknown email, wrong password and inactive users,
-// and a hash comparison always runs, so attackers cannot enumerate accounts by timing.
+// The same generic error is returned for unknown email and wrong password (also on deactivated
+// accounts), and a hash comparison always runs, so attackers cannot enumerate accounts by timing.
+// Only the right password on a deactivated account is told that it was deactivated.
 // Consecutive wrong passwords lock the account (LOGIN_LOCKOUT_THRESHOLD) until an admin unlocks it.
 @Injectable()
 export class LoginUseCase {
@@ -43,9 +45,15 @@ export class LoginUseCase {
     const hashToCheck = user?.passwordHash ?? (await this.getDummyHash());
     const passwordMatches = await this.passwordHasher.verify(command.password, hashToCheck);
 
-    if (!user || !user.isActive) {
-      if (user) await this.recordFailure(user, 'INACTIVE_USER');
+    if (!user) {
       throw new AuthenticationFailedError();
+    }
+
+    // Deactivated accounts never count towards the lockout; the reason is only shared
+    // with someone who proved they know the password.
+    if (!user.isActive) {
+      await this.recordFailure(user, 'INACTIVE_USER');
+      throw passwordMatches ? new AccountDeactivatedError() : new AuthenticationFailedError();
     }
 
     // A locked account stays locked even with the right password.
