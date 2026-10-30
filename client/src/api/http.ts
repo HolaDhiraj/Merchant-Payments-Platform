@@ -43,11 +43,12 @@ interface RequestOptions {
   method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   body?: unknown;
   query?: Query;
+  headers?: Record<string, string>;
   signal?: AbortSignal;
 }
 
 export async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  const headers: Record<string, string> = { Accept: 'application/json' };
+  const headers: Record<string, string> = { Accept: 'application/json', ...options.headers };
   const token = session.token();
   if (token) headers.Authorization = `Bearer ${token}`;
   if (options.body !== undefined) headers['Content-Type'] = 'application/json';
@@ -70,7 +71,7 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
 
   if (!response.ok) {
     // An expired or revoked token ends the session everywhere; the router sends the user to login.
-    if (response.status === 401 && path !== LOGIN_PATH) session.end();
+    if (response.status === 401 && path !== LOGIN_PATH) session.end('expired');
     throw new ApiError(response.status, payload as Partial<ErrorBody>);
   }
   return payload as T;

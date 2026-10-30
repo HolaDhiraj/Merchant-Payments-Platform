@@ -1,6 +1,13 @@
 import { Body, Controller, HttpCode, HttpStatus, Post, UseGuards } from '@nestjs/common';
+import { Actor } from '../../../shared/domain/actor';
+import { AllowTemporaryPassword } from '../../../shared/presentation/decorators/allow-temporary-password.decorator';
+import { CurrentActor } from '../../../shared/presentation/decorators/current-actor.decorator';
+import { ChangePasswordUseCase } from '../application/change-password.use-case';
+import { ChangePasswordDto } from './dto/change-password.dto';
 import { ThrottlerGuard } from '@nestjs/throttler';
 import {
+  ApiBearerAuth,
+  ApiNoContentResponse,
   ApiOkResponse,
   ApiTags,
   ApiTooManyRequestsResponse,
@@ -14,7 +21,10 @@ import { TokenResponseDto } from './dto/token-response.dto';
 @ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly login: LoginUseCase) {}
+  constructor(
+    private readonly login: LoginUseCase,
+    private readonly changePassword: ChangePasswordUseCase,
+  ) {}
 
   // Rate limited per client IP to slow down credential stuffing.
   @Public()
@@ -31,5 +41,17 @@ export class AuthController {
       tokenType: 'Bearer',
       expiresIn: token.expiresInSeconds,
     };
+  }
+
+  // Rate limited like sign-in, because it also checks a password.
+  @Post('change-password')
+  @AllowTemporaryPassword()
+  @UseGuards(ThrottlerGuard)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiBearerAuth()
+  @ApiNoContentResponse({ description: 'Password changed; the temporary-password flag is cleared' })
+  @ApiUnauthorizedResponse({ description: 'Current password is not correct' })
+  async replacePassword(@CurrentActor() actor: Actor, @Body() dto: ChangePasswordDto): Promise<void> {
+    await this.changePassword.execute(actor, dto);
   }
 }

@@ -1,6 +1,6 @@
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useApplications } from '@/api/queries';
-import type { ApplicationStatus, User } from '@/api/types';
+import type { ApplicationStatus, PlatformRole } from '@/api/types';
 import { useCurrentUser } from '@/auth/AuthProvider';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { ButtonLink } from '@/components/ui/Button';
@@ -23,7 +23,7 @@ import styles from './ApplicationsPage.module.css';
 type StatusFilter = ApplicationStatus | 'ALL';
 const PAGE_SIZE = 20;
 
-const SUBTITLE: Record<User['role'], string> = {
+const SUBTITLE: Record<PlatformRole, string> = {
   SALES: 'Merchants you are onboarding.',
   REVIEWER: 'Submitted merchants waiting on a risk decision.',
   ADMIN: 'Every merchant application across the team.',
@@ -63,7 +63,7 @@ export function ApplicationsPage() {
     <>
       <PageHeader
         title="Applications"
-        subtitle={SUBTITLE[user.role]}
+        subtitle={SUBTITLE[user.role as PlatformRole]}
         actions={
           canCreate(user) && (
             <ButtonLink to="/applications/new" variant="primary" icon="plus">

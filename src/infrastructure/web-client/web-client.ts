@@ -4,7 +4,7 @@ import type { Server } from 'node:http';
 import { Logger } from '@nestjs/common';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import type { NextFunction, Request, Response } from 'express';
-import type { ViteDevServer } from 'vite';
+import type { Plugin, ViteDevServer } from 'vite';
 import { API_PREFIX } from '../../app.setup';
 
 // Serves the React web client from the same HTTP server (and port) as the API.
@@ -82,7 +82,27 @@ async function createViteServer(httpServer: Server): Promise<ViteDevServer> {
     configFile: join(CLIENT_SOURCE_DIR, 'vite.config.mts'),
     appType: 'custom',
     server: { middlewareMode: true, hmr: { server: httpServer } },
+    plugins: [survivesWatcherErrors()],
   });
+}
+
+// An unhandled watcher error would crash the whole API, e.g. ENOSPC when the machine runs out
+// of inotify watches (IDEs use many). Losing hot reload is acceptable; losing the server is not.
+// The handler is attached in configureServer, which runs as soon as the watcher exists.
+function survivesWatcherErrors(): Plugin {
+  return {
+    name: 'merchant-desk:survive-watcher-errors',
+    configureServer(server) {
+      server.watcher.on('error', (error) => {
+        const code = (error as NodeJS.ErrnoException).code;
+        const hint =
+          code === 'ENOSPC'
+            ? ' The system file-watcher limit is reached; raise fs.inotify.max_user_watches (see README).'
+            : '';
+        logger.warn(`Client file watching failed, hot reload may miss changes: ${String(error)}.${hint}`);
+      });
+    },
+  };
 }
 
 type Middleware = (req: Request, res: Response, next: NextFunction) => void;

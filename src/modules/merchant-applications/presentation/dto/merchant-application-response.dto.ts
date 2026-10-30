@@ -90,3 +90,16 @@ export class RiskAssessmentResponseDto {
   @ApiProperty({ type: [String] }) reasons: string[];
   @ApiProperty() assessedAt: Date;
 }
+
+// One-time owner sign-in for a newly onboarded merchant. Shown once, never retrievable again.
+export class OnboardingCredentialsDto {
+  @ApiProperty() merchantId: string;
+  @ApiProperty() ownerUserId: string;
+  @ApiProperty() ownerEmail: string;
+  @ApiProperty({ description: 'Must be changed at first sign-in' }) temporaryPassword: string;
+}
+
+export class DecisionResponseDto extends MerchantApplicationResponseDto {
+  @ApiProperty({ type: OnboardingCredentialsDto, nullable: true })
+  onboarding: OnboardingCredentialsDto | null;
+}

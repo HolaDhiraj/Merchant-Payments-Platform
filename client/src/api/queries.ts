@@ -132,8 +132,8 @@ export function useUpdateApplication(id: string) {
 }
 
 // Lifecycle commands all return the updated application, so they share one cache update.
-export function useApplicationCommand<TInput = void>(
-  command: (id: string, input: TInput) => Promise<MerchantApplication>,
+export function useApplicationCommand<TInput = void, TResult extends MerchantApplication = MerchantApplication>(
+  command: (id: string, input: TInput) => Promise<TResult>,
   id: string,
 ) {
   const client = useQueryClient();

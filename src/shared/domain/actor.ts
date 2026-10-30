@@ -5,6 +5,8 @@ import { Role } from './role.enum';
 export interface Actor {
   readonly userId: string;
   readonly role: Role;
+  // Set for merchant users only: the tenant every merchant-portal query is scoped to.
+  readonly merchantId?: string | null;
 }
 
 // Identifies background processes (e.g. the risk worker) in the audit trail.

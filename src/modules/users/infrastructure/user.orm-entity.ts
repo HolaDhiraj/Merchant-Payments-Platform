@@ -23,6 +23,12 @@ export class UserOrmEntity {
   @Column({ name: 'is_active', type: 'boolean', default: true })
   isActive: boolean;
 
+  @Column({ name: 'merchant_id', type: 'uuid', nullable: true })
+  merchantId: string | null;
+
+  @Column({ name: 'must_change_password', type: 'boolean', default: false })
+  mustChangePassword: boolean;
+
   @Column({ name: 'failed_login_attempts', type: 'integer', default: 0 })
   failedLoginAttempts: number;
 

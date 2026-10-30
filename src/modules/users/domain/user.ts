@@ -9,6 +9,10 @@ export interface UserProps {
   role: Role;
   passwordHash: string;
   isActive: boolean;
+  // Merchant users belong to exactly one merchant; platform staff have none.
+  merchantId: string | null;
+  // Set for temporary passwords: every route except changing it is refused until it is changed.
+  mustChangePassword: boolean;
   // Consecutive wrong passwords since the last successful sign-in or unlock.
   failedLoginAttempts: number;
   // Set once failedLoginAttempts reaches the lockout threshold; cleared only by an admin.
@@ -17,7 +21,11 @@ export interface UserProps {
   updatedAt: Date;
 }
 
-export type NewUserProps = Omit<UserProps, 'failedLoginAttempts' | 'lockedAt'>;
+export type NewUserProps = Omit<
+  UserProps,
+  'failedLoginAttempts' | 'lockedAt' | 'merchantId' | 'mustChangePassword'
+> &
+  Partial<Pick<UserProps, 'merchantId' | 'mustChangePassword'>>;
 
 // Result of counting one more wrong password against an account.
 export interface LoginFailureState {
@@ -32,6 +40,8 @@ export class User {
     return new User({
       ...props,
       email: User.normaliseEmail(props.email),
+      merchantId: props.merchantId ?? null,
+      mustChangePassword: props.mustChangePassword ?? false,
       failedLoginAttempts: 0,
       lockedAt: null,
     });
@@ -63,6 +73,12 @@ export class User {
   }
   get isActive(): boolean {
     return this.props.isActive;
+  }
+  get merchantId(): string | null {
+    return this.props.merchantId;
+  }
+  get mustChangePassword(): boolean {
+    return this.props.mustChangePassword;
   }
   get failedLoginAttempts(): number {
     return this.props.failedLoginAttempts;

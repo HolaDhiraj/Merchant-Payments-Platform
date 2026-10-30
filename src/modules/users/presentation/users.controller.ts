@@ -22,6 +22,7 @@ import { Actor } from '../../../shared/domain/actor';
 import { mapPage } from '../../../shared/application/pagination';
 import { Roles } from '../../../shared/presentation/decorators/roles.decorator';
 import { CurrentActor } from '../../../shared/presentation/decorators/current-actor.decorator';
+import { AllowTemporaryPassword } from '../../../shared/presentation/decorators/allow-temporary-password.decorator';
 import { CreateUserUseCase } from '../application/create-user.use-case';
 import { GetCurrentUserUseCase } from '../application/get-current-user.use-case';
 import { ListUsersUseCase } from '../application/list-users.use-case';
@@ -59,7 +60,7 @@ export class UsersController {
   @ApiOkResponse({ type: UserPageResponseDto })
   async list(@Query() query: ListUsersQueryDto): Promise<UserPageResponseDto> {
     const page = await this.listUsers.execute(
-      { role: query.role },
+      { role: query.role, merchantId: null },
       { page: query.page, pageSize: query.pageSize },
     );
     return mapPage(page, UserResponseDto.fromDomain);
@@ -91,8 +92,9 @@ export class UsersController {
     return UserResponseDto.fromDomain(await this.setUserActive.execute(actor, id, dto.isActive));
   }
 
-  // Any signed-in user can read their own profile.
+  // Any signed-in user can read their own profile, even before replacing a temporary password.
   @Get('me')
+  @AllowTemporaryPassword()
   @ApiOkResponse({ type: UserResponseDto })
   async me(@CurrentActor() actor: Actor): Promise<UserResponseDto> {
     return UserResponseDto.fromDomain(await this.getCurrentUser.execute(actor));

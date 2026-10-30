@@ -50,6 +50,8 @@ function user(id: string, role: Role, isActive = true): User {
     role,
     passwordHash: 'x',
     isActive,
+    merchantId: null,
+    mustChangePassword: false,
     failedLoginAttempts: 0,
     lockedAt: null,
     createdAt: now,
@@ -68,6 +70,13 @@ describe('Merchant application command use cases', () => {
   let assign: AssignReviewerUseCase;
   let decide: RecordReviewDecisionUseCase;
   let list: ListMerchantApplicationsUseCase;
+  let onboarding: { onboard: jest.Mock };
+  const credentials = {
+    merchantId: 'merchant-1',
+    ownerUserId: 'owner-1',
+    ownerEmail: 'owner@example.test',
+    temporaryPassword: 'TempPassword42x',
+  };
 
   beforeEach(() => {
     applications = new InMemoryMerchantApplicationRepository();
@@ -90,6 +99,7 @@ describe('Merchant application command use cases', () => {
       search: async () => ({ items: [], page: 1, pageSize: 20, totalItems: 0, totalPages: 0 }),
       recordFailedLogin: async () => ({ failedLoginAttempts: 1, lockedAt: null }),
       clearLoginFailures: async () => undefined,
+      updatePassword: async () => undefined,
       setActive: async () => undefined,
     };
 
@@ -104,7 +114,15 @@ describe('Merchant application command use cases', () => {
       new RiskReviewScheduler(outbox),
     );
     assign = new AssignReviewerUseCase(reader, applications, users, unitOfWork, clock, audit);
-    decide = new RecordReviewDecisionUseCase(reader, applications, unitOfWork, clock, audit);
+    onboarding = { onboard: jest.fn(async () => credentials) };
+    decide = new RecordReviewDecisionUseCase(
+      reader,
+      applications,
+      unitOfWork,
+      clock,
+      audit,
+      onboarding,
+    );
     list = new ListMerchantApplicationsUseCase(applications);
   });
 
@@ -194,8 +212,14 @@ describe('Merchant application command use cases', () => {
     ).rejects.toBeInstanceOf(AccessDeniedError);
 
     const approved = await decide.execute(reviewer, id, { decision: ReviewDecision.APPROVE });
-    expect(approved.status).toBe(ApplicationStatus.APPROVED);
+    expect(approved.application.status).toBe(ApplicationStatus.APPROVED);
     expect(auditLog.entries.at(-1)?.action).toBe(AuditAction.REVIEW_DECISION_RECORDED);
+    // Approval onboards the merchant and hands back the owner's one-time sign-in.
+    expect(onboarding.onboard).toHaveBeenCalledWith(
+      reviewer,
+      expect.objectContaining({ applicationId: id, owner: expect.any(Object) }),
+    );
+    expect(approved.onboarding).toEqual(credentials);
   });
 
   it('lists only the caller’s own applications for sales users', async () => {

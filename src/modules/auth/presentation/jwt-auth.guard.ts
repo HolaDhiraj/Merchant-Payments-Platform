@@ -1,6 +1,10 @@
 import { CanActivate, ExecutionContext, Inject, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { AuthenticationFailedError } from '../../../shared/domain/domain-errors';
+import {
+  AuthenticationFailedError,
+  PasswordChangeRequiredError,
+} from '../../../shared/domain/domain-errors';
+import { ALLOW_TEMPORARY_PASSWORD_KEY } from '../../../shared/presentation/decorators/allow-temporary-password.decorator';
 import { IS_PUBLIC_KEY } from '../../../shared/presentation/decorators/public.decorator';
 import { AuthenticatedRequest } from '../../../shared/presentation/decorators/current-actor.decorator';
 import { USER_REPOSITORY, UserRepository } from '../../users/domain/user.repository';
@@ -8,7 +12,8 @@ import { TOKEN_SERVICE, TokenService } from '../domain/token-service';
 
 // Global authentication guard: every route requires a valid Bearer token unless marked @Public().
 // The user is re-loaded on each request so deactivation and role changes take effect immediately,
-// and the role used for authorization comes from the database, not from the token alone.
+// and the role and merchant (tenant) used for authorization come from the database, not the token.
+// Users holding a temporary password can only reach routes marked @AllowTemporaryPassword().
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
   constructor(
@@ -38,7 +43,15 @@ export class JwtAuthGuard implements CanActivate {
       throw new AuthenticationFailedError('Invalid or expired token');
     }
 
-    request.actor = { userId: user.id, role: user.role };
+    const allowsTemporaryPassword = this.reflector.getAllAndOverride<boolean>(
+      ALLOW_TEMPORARY_PASSWORD_KEY,
+      [context.getHandler(), context.getClass()],
+    );
+    if (user.mustChangePassword && !allowsTemporaryPassword) {
+      throw new PasswordChangeRequiredError();
+    }
+
+    request.actor = { userId: user.id, role: user.role, merchantId: user.merchantId };
     return true;
   }
 

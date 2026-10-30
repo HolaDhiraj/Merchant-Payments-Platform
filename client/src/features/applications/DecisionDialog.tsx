@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { commands, useApplicationCommand } from '@/api/queries';
-import type { MerchantApplication, ReviewDecision } from '@/api/types';
+import type { MerchantApplication, OnboardingCredentials, ReviewDecision } from '@/api/types';
+import { CredentialsDialog } from '@/components/portal/CredentialsDialog';
 import { Button } from '@/components/ui/Button';
 import { Callout } from '@/components/ui/Callout';
 import { Dialog } from '@/components/ui/Dialog';
@@ -11,7 +12,7 @@ import { DECISION_LABEL } from '@/lib/labels';
 import styles from './DecisionDialog.module.css';
 
 const OPTIONS: Array<{ value: ReviewDecision; title: string; text: string }> = [
-  { value: 'APPROVE', title: 'Approve', text: 'The merchant can start processing payments.' },
+  { value: 'APPROVE', title: 'Approve', text: 'Opens the merchant account and gives you the owner\'s first sign-in.' },
   { value: 'REQUEST_INFO', title: 'Request more information', text: 'Sends it back to sales to update and resubmit.' },
   { value: 'REJECT', title: 'Reject', text: 'Final. The merchant will not be onboarded.' },
 ];
@@ -30,6 +31,8 @@ export function DecisionDialog({ application, onClose }: DecisionDialogProps) {
   const [showErrors, setShowErrors] = useState(false);
   const decide = useApplicationCommand(commands.decide, application.id);
   const toast = useToast();
+  // After an approval the dialog turns into the owner's one-time credentials.
+  const [credentials, setCredentials] = useState<OnboardingCredentials | null>(null);
 
   // Same rules as the server: a reason is required unless approving a non-HIGH risk merchant.
   const needsReason = decision !== 'APPROVE' || application.riskLevel === 'HIGH';
@@ -41,11 +44,24 @@ export function DecisionDialog({ application, onClose }: DecisionDialogProps) {
     decide.mutate(
       { decision, reason: reason.trim() || undefined },
       {
-        onSuccess: () => {
+        onSuccess: (result) => {
           toast.success(`${application.businessName}: ${DECISION_LABEL[decision].toLowerCase()}`);
-          onClose();
+          if (result.onboarding) setCredentials(result.onboarding);
+          else onClose();
         },
       },
+    );
+  }
+
+  if (credentials) {
+    return (
+      <CredentialsDialog
+        title="Merchant account opened"
+        description={`${application.businessName} can now sign in to the merchant portal as its owner.`}
+        email={credentials.ownerEmail}
+        temporaryPassword={credentials.temporaryPassword}
+        onClose={onClose}
+      />
     );
   }
 

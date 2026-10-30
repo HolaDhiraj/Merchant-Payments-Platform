@@ -1,0 +1,30 @@
+.price {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px var(--space-2);
+}
+
+.final {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.was {
+  color: var(--text-faint);
+  font-size: var(--text-sm);
+  text-decoration-thickness: 1px;
+}
+
+.off {
+  padding: 1px 5px;
+  border-radius: var(--radius-sm);
+  background: var(--success-soft);
+  color: var(--success-text);
+  font-size: var(--text-xs);
+  font-weight: 600;
+}
+
+.large .final {
+  font-size: var(--text-md);
+}

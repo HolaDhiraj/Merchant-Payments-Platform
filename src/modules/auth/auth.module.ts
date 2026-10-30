@@ -10,6 +10,7 @@ import { AuditModule } from '../audit/audit.module';
 import { TOKEN_SERVICE } from './domain/token-service';
 import { JwtTokenService } from './infrastructure/jwt-token.service';
 import { LoginUseCase } from './application/login.use-case';
+import { ChangePasswordUseCase } from './application/change-password.use-case';
 import { AuthController } from './presentation/auth.controller';
 import { JwtAuthGuard } from './presentation/jwt-auth.guard';
 
@@ -34,6 +35,7 @@ import { JwtAuthGuard } from './presentation/jwt-auth.guard';
   providers: [
     { provide: TOKEN_SERVICE, useClass: JwtTokenService },
     LoginUseCase,
+    ChangePasswordUseCase,
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: RolesGuard },
   ],

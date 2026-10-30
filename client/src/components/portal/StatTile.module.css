@@ -1,0 +1,40 @@
+.tile {
+  display: grid;
+  align-content: start;
+  gap: 4px;
+  min-width: 0;
+  padding: var(--space-4) var(--space-5);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+
+.label {
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+}
+
+.value {
+  overflow: hidden;
+  font-family: var(--font-mono);
+  font-size: 1.375rem;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hint {
+  color: var(--text-faint);
+  font-size: var(--text-xs);
+}
+
+.accent {
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--border));
+  background: var(--accent-soft);
+}
+
+.accent .label,
+.accent .value {
+  color: var(--accent-text);
+}

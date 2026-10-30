@@ -17,7 +17,9 @@ import {
   DomainError,
   DuplicateEntityError,
   EntityNotFoundError,
+  IdempotencyKeyReusedError,
   InvalidStateTransitionError,
+  PasswordChangeRequiredError,
 } from '../../domain/domain-errors';
 import { RequestContext } from '../../infrastructure/request-context/request-context';
 
@@ -32,10 +34,12 @@ const DOMAIN_ERROR_STATUS = new Map<DomainErrorClass, HttpStatus>([
   [InvalidStateTransitionError, HttpStatus.CONFLICT],
   [ConcurrencyConflictError, HttpStatus.CONFLICT],
   [DuplicateEntityError, HttpStatus.CONFLICT],
+  [IdempotencyKeyReusedError, HttpStatus.CONFLICT],
   [BusinessRuleViolationError, HttpStatus.UNPROCESSABLE_ENTITY],
   [AuthenticationFailedError, HttpStatus.UNAUTHORIZED],
   [AccountLockedError, HttpStatus.LOCKED],
   [AccountDeactivatedError, HttpStatus.FORBIDDEN],
+  [PasswordChangeRequiredError, HttpStatus.FORBIDDEN],
 ]);
 
 interface ErrorBody {

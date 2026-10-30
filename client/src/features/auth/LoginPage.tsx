@@ -1,8 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
-import { Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { ApiError } from '@/api/http';
 import { useAuth } from '@/auth/AuthProvider';
+import { canOpen } from '@/auth/routeAccess';
+import { session } from '@/auth/session';
 import { Wordmark } from '@/components/layout/Wordmark';
 import { ThemeSwitch } from '@/components/layout/ThemeSwitch';
 import { Button } from '@/components/ui/Button';
@@ -10,10 +12,12 @@ import { Callout } from '@/components/ui/Callout';
 import { Field, Input, PasswordInput } from '@/components/ui/Field';
 import { Icon } from '@/components/ui/Icon';
 import type { IconName } from '@/components/ui/Icon';
+import { homePathFor } from '@/lib/roles';
 import { BrandPreview } from './BrandPreview';
 import styles from './LoginPage.module.css';
 
 type LoginProblem =
+  | { kind: 'expired' }
   | { kind: 'locked'; message: string }
   | { kind: 'deactivated'; message: string }
   | { kind: 'lastAttempts'; remaining: number }
@@ -33,6 +37,12 @@ function describeLoginError(error: unknown): LoginProblem {
 
 function LoginNotice({ problem }: { problem: LoginProblem }) {
   switch (problem.kind) {
+    case 'expired':
+      return (
+        <Callout tone="info" icon="lock" title="Session expired">
+          For your security you were signed out. Sign in again to pick up where you left off.
+        </Callout>
+      );
     case 'locked':
       return (
         <Callout tone="danger" icon="lock" title="Account locked">
@@ -69,24 +79,29 @@ const HIGHLIGHTS: Array<{ icon: IconName; title: string; text: string }> = [
 
 export function LoginPage() {
   const { user, signIn } = useAuth();
-  const navigate = useNavigate();
   const location = useLocation();
-  const from = (location.state as { from?: string } | null)?.from ?? '/applications';
+  // The page the previous session ended on (or a link opened while signed out).
+  const from = (location.state as { from?: string } | null)?.from;
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [problem, setProblem] = useState<LoginProblem | null>(null);
+  // Read (not consumed) during render: StrictMode may run initializers twice.
+  const [problem, setProblem] = useState<LoginProblem | null>(() =>
+    session.endReason() === 'expired' ? { kind: 'expired' } : null,
+  );
+  useEffect(() => session.clearEndReason(), []);
   const [submitting, setSubmitting] = useState(false);
 
-  if (user) return <Navigate to={from} replace />;
+  // Return there only if this user may open it: whoever signs in next can have another role.
+  if (user) return <Navigate to={from && canOpen(user.role, from) ? from : homePathFor(user.role)} replace />;
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     setProblem(null);
     setSubmitting(true);
     try {
+      // Redirects above once the profile has loaded; the button keeps spinning until then.
       await signIn(email.trim(), password);
-      navigate(from, { replace: true });
     } catch (caught) {
       setProblem(describeLoginError(caught));
       setPassword('');

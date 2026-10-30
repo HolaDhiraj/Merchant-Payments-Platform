@@ -1,0 +1,14 @@
+.toolbar {
+  margin-bottom: var(--space-4);
+}
+
+.methods {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.actions {
+  width: 1%;
+  white-space: nowrap;
+}

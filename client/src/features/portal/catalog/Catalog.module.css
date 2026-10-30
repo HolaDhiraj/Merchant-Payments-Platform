@@ -1,0 +1,74 @@
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.categoryFilter {
+  width: 200px;
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+
+.wide {
+  grid-column: 1 / -1;
+}
+
+.previewRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border);
+}
+
+.previewRow > label {
+  flex: 1 1 260px;
+}
+
+.preview {
+  display: grid;
+  justify-items: end;
+  gap: 2px;
+}
+
+.previewLabel {
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+}
+
+.actions {
+  width: 1%;
+  white-space: nowrap;
+}
+
+.actionGroup {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-1);
+}
+
+@media (max-width: 640px) {
+  .formGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .categoryFilter {
+    width: 100%;
+  }
+}

@@ -52,7 +52,9 @@ export async function createTestContext(): Promise<TestContext> {
   await dataSource.query(`CREATE SCHEMA IF NOT EXISTS "${schema}"`);
   await dataSource.runMigrations();
   await dataSource.query(
-    'TRUNCATE TABLE audit_logs, risk_assessments, merchant_applications, users, outbox_messages, processed_webhook_events RESTART IDENTITY CASCADE',
+    `TRUNCATE TABLE audit_logs, risk_assessments, merchant_applications, users, outbox_messages,
+       processed_webhook_events, merchants, product_categories, products, customers,
+       payment_transactions, payment_transaction_items, loyalty_ledger RESTART IDENTITY CASCADE`,
   );
 
   const queue = app.get<Queue>(getQueueToken(RISK_REVIEW_QUEUE_NAME));
@@ -110,15 +112,23 @@ export function auth(user: TestUser): { Authorization: string } {
 }
 
 // Valid application payload with synthetic data only.
+let ownerCounter = 0;
+
+// Each application gets its own owner email: approving it creates the owner's merchant account.
 export function applicationPayload(
   overrides: Record<string, unknown> = {},
 ): Record<string, unknown> {
+  ownerCounter += 1;
   return {
     businessName: 'Test Coffee',
     legalBusinessName: 'Test Coffee LLC',
     businessType: 'LLC',
     taxId: '00-0001234',
-    owner: { fullName: 'Test Owner', email: 'owner@example.test', phone: '+15555550100' },
+    owner: {
+      fullName: 'Test Owner',
+      email: `owner.${ownerCounter}.${Date.now()}@example.test`,
+      phone: '+15555550100',
+    },
     processing: {
       merchantCategoryCode: '5812',
       currency: 'USD',

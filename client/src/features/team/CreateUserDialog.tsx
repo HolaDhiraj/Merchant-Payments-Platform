@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { useCreateUser } from '@/api/queries';
-import type { Role } from '@/api/types';
+import type { PlatformRole as Role } from '@/api/types';
 import { Button } from '@/components/ui/Button';
 import { Callout } from '@/components/ui/Callout';
 import { Dialog } from '@/components/ui/Dialog';
 import { Field, Input, PasswordInput, Select } from '@/components/ui/Field';
 import { useToast } from '@/components/ui/Toast';
 import { errorMessage } from '@/lib/errors';
-import { ROLE_LABEL } from '@/lib/labels';
+import { PLATFORM_ROLE_LABEL } from '@/lib/labels';
 
 interface Values {
   fullName: string;
@@ -82,7 +82,7 @@ export function CreateUserDialog({ onClose }: { onClose(): void }) {
       </Field>
       <Field label="Role" hint="Sales capture merchants, reviewers decide on them, admins run the platform.">
         <Select value={values.role} onChange={(event) => set('role', event.target.value as Role)}>
-          {Object.entries(ROLE_LABEL).map(([value, label]) => (
+          {Object.entries(PLATFORM_ROLE_LABEL).map(([value, label]) => (
             <option key={value} value={value}>
               {label}
             </option>
