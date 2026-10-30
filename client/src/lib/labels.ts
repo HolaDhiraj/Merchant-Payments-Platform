@@ -66,6 +66,8 @@ export const AUDIT_ACTION_LABEL: Record<AuditAction, string> = {
   LOGIN_FAILED: 'Sign-in failed',
   USER_LOCKED: 'Account locked',
   USER_UNLOCKED: 'Account unlocked',
+  USER_ACTIVATED: 'Account reactivated',
+  USER_DEACTIVATED: 'Account deactivated',
   APPLICATION_CREATED: 'Application created',
   APPLICATION_UPDATED: 'Application edited',
   APPLICATION_SUBMITTED: 'Submitted for review',

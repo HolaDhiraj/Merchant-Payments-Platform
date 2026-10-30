@@ -28,6 +28,8 @@ export const usersApi = {
     request<Page<User>>('/users', { query: { ...query } }),
   create: (input: CreateUserInput) => request<User>('/users', { method: 'POST', body: input }),
   unlock: (id: string) => request<User>(`/users/${id}/unlock`, { method: 'POST' }),
+  setActive: (id: string, isActive: boolean) =>
+    request<User>(`/users/${id}/status`, { method: 'PATCH', body: { isActive } }),
 };
 
 export interface ApplicationListQuery {

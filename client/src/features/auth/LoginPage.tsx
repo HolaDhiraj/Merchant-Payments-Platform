@@ -15,12 +15,14 @@ import styles from './LoginPage.module.css';
 
 type LoginProblem =
   | { kind: 'locked'; message: string }
+  | { kind: 'deactivated'; message: string }
   | { kind: 'lastAttempts'; remaining: number }
   | { kind: 'error'; message: string };
 
 function describeLoginError(error: unknown): LoginProblem {
   if (!(error instanceof ApiError)) return { kind: 'error', message: 'Something went wrong. Please try again.' };
   if (error.code === 'ACCOUNT_LOCKED') return { kind: 'locked', message: error.message };
+  if (error.code === 'ACCOUNT_DEACTIVATED') return { kind: 'deactivated', message: error.message };
   const remaining = error.meta.remainingAttempts;
   if (error.status === 401 && typeof remaining === 'number') return { kind: 'lastAttempts', remaining };
   if (error.status === 401) return { kind: 'error', message: 'That email and password combination is not right.' };
@@ -34,6 +36,12 @@ function LoginNotice({ problem }: { problem: LoginProblem }) {
     case 'locked':
       return (
         <Callout tone="danger" icon="lock" title="Account locked">
+          {problem.message}
+        </Callout>
+      );
+    case 'deactivated':
+      return (
+        <Callout tone="danger" icon="power" title="Account deactivated">
           {problem.message}
         </Callout>
       );
@@ -140,7 +148,7 @@ export function LoginPage() {
                   value={email}
                   onChange={(event) => {
                     setEmail(event.target.value);
-                    if (problem?.kind === 'locked') setProblem(null);
+                    if (problem?.kind === 'locked' || problem?.kind === 'deactivated') setProblem(null);
                   }}
                   placeholder="you@company.com"
                 />

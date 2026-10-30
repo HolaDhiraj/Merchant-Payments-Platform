@@ -76,6 +76,16 @@ export class AuthenticationFailedError extends DomainError {
   }
 }
 
+// The right password for an account an admin has deactivated. Only reported after the password
+// matched, so the account's status is never revealed to someone guessing passwords.
+export class AccountDeactivatedError extends DomainError {
+  readonly code = 'ACCOUNT_DEACTIVATED';
+
+  constructor() {
+    super('This account has been deactivated. Contact an administrator to reactivate it.');
+  }
+}
+
 // Too many consecutive wrong passwords; only an admin can unlock the account.
 export class AccountLockedError extends DomainError {
   readonly code = 'ACCOUNT_LOCKED';

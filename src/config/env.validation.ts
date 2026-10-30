@@ -9,6 +9,10 @@ export const envValidationSchema = Joi.object({
   DATABASE_HOST: Joi.string().required(),
   DATABASE_PORT: Joi.number().port().default(5432),
   DATABASE_NAME: Joi.string().required(),
+  // Lets the platform live in its own schema inside a shared database.
+  DATABASE_SCHEMA: Joi.string()
+    .pattern(/^[a-z_][a-z0-9_]{0,62}$/)
+    .default('public'),
   DATABASE_USER: Joi.string().required(),
   DATABASE_PASSWORD: Joi.string().required(),
   DATABASE_SSL: Joi.boolean().default(false),

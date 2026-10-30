@@ -20,12 +20,20 @@ import { formatDate, formatDateTime } from '@/lib/format';
 import { ROLE_LABEL } from '@/lib/labels';
 import { CreateUserDialog } from './CreateUserDialog';
 import { UnlockUserDialog } from './UnlockUserDialog';
+import { UserStatusDialog } from './UserStatusDialog';
 import styles from './TeamPage.module.css';
 
 type RoleFilter = Role | 'ALL';
 
 function AccountStatus({ user }: { user: User }) {
-  if (!user.isActive) return <Badge dot>Deactivated</Badge>;
+  if (!user.isActive) {
+    return (
+      <>
+        <Badge dot>Deactivated</Badge>
+        <span className={table.secondary}>Can't sign in</span>
+      </>
+    );
+  }
   if (!user.isLocked) {
     return (
       <Badge tone="success" dot>
@@ -52,6 +60,7 @@ export function TeamPage() {
   const [params, setParams] = useSearchParams();
   const [creating, setCreating] = useState(false);
   const [unlocking, setUnlocking] = useState<User | null>(null);
+  const [changingStatus, setChangingStatus] = useState<User | null>(null);
   const role = (params.get('role') as Role | null) ?? undefined;
   const page = Math.max(1, Number(params.get('page')) || 1);
   const query = useUsers({ role, page });
@@ -138,11 +147,24 @@ export function TeamPage() {
                         </td>
                         <td className={table.muted}>{formatDate(user.createdAt)}</td>
                         <td className={styles.actions}>
-                          {user.isLocked && (
-                            <Button size="sm" icon="unlock" onClick={() => setUnlocking(user)}>
-                              Unlock
-                            </Button>
-                          )}
+                          <div className={styles.actionGroup}>
+                            {user.isLocked && (
+                              <Button size="sm" icon="unlock" onClick={() => setUnlocking(user)}>
+                                Unlock
+                              </Button>
+                            )}
+                            {/* Admins cannot deactivate themselves (the API enforces it too). */}
+                            {user.id !== me.id &&
+                              (user.isActive ? (
+                                <Button size="sm" variant="ghost" icon="power" onClick={() => setChangingStatus(user)}>
+                                  Deactivate
+                                </Button>
+                              ) : (
+                                <Button size="sm" icon="check" onClick={() => setChangingStatus(user)}>
+                                  Reactivate
+                                </Button>
+                              ))}
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -163,6 +185,7 @@ export function TeamPage() {
         </Panel>
       )}
 
+      {changingStatus && <UserStatusDialog user={changingStatus} onClose={() => setChangingStatus(null)} />}
       {unlocking && <UnlockUserDialog user={unlocking} onClose={() => setUnlocking(null)} />}
       {creating && <CreateUserDialog onClose={() => setCreating(false)} />}
     </>

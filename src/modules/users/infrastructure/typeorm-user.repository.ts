@@ -85,6 +85,10 @@ export class TypeOrmUserRepository implements UserRepository {
     await this.repository.update({ id }, { failedLoginAttempts: 0, lockedAt: null });
   }
 
+  async setActive(id: string, isActive: boolean): Promise<void> {
+    await this.repository.update({ id }, { isActive });
+  }
+
   private toDomain(row: UserOrmEntity): User {
     return User.restore({ ...row });
   }

@@ -10,6 +10,7 @@ import { CreateUserUseCase } from './application/create-user.use-case';
 import { ListUsersUseCase } from './application/list-users.use-case';
 import { GetCurrentUserUseCase } from './application/get-current-user.use-case';
 import { UnlockUserUseCase } from './application/unlock-user.use-case';
+import { SetUserActiveUseCase } from './application/set-user-active.use-case';
 import { UsersController } from './presentation/users.controller';
 
 // Owns user accounts. Exposes the repository and hasher ports to auth and other modules.
@@ -23,6 +24,7 @@ import { UsersController } from './presentation/users.controller';
     ListUsersUseCase,
     GetCurrentUserUseCase,
     UnlockUserUseCase,
+    SetUserActiveUseCase,
   ],
   exports: [USER_REPOSITORY, PASSWORD_HASHER, CreateUserUseCase],
 })

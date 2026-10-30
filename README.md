@@ -13,15 +13,16 @@ AES-256-GCM field encryption · redacted, correlated audit trail · reviewed mig
 
 ## 1. Quick start
 
-Prerequisites: Node.js 20+, Docker with Compose.
+Prerequisites: Node.js 20+, plus PostgreSQL 14+ and Redis 6+ (installed locally, or via Docker Compose).
 
 ```bash
 npm install
 npm run env:init                 # creates .env with freshly generated local secrets (never committed)
-docker compose up -d postgres redis
+docker compose up -d postgres redis   # skip when using a local PostgreSQL and Redis (see below)
 set -a; . ./.env; set +a         # export .env for the TypeORM CLI and seed script
 npm run migration:run            # applies the reviewed migrations (run again after pulling new ones)
 npm run seed                     # creates one ADMIN, REVIEWER and SALES user from SEED_* variables in .env
+npm run seed:demo                # optional: 14 sample applications in every stage (re-runnable)
 npm run start:dev                # web app http://localhost:3000, API /api, Swagger UI /api/docs
 ```
 
@@ -69,6 +70,21 @@ IPv4/IPv6 auto-selection timing out. The Dockerfile already works around it; loc
 
 Docker publishes PostgreSQL on host port **55432** and Redis on **56379**, so it does not clash with a locally installed Postgres or Redis.
 
+### Using a local PostgreSQL and Redis instead of Docker
+
+Point the `DATABASE_*` and `REDIS_*` variables in `.env` at your servers. To share an existing database with
+other applications, give the platform its own schema; every connection is pinned to it (`search_path`), so
+the other schemas are never read or written:
+
+```bash
+DATABASE_NAME=my_shared_db
+DATABASE_SCHEMA=merchant_payments            # create it once: CREATE SCHEMA merchant_payments;
+TEST_DATABASE_NAME=my_shared_db              # integration tests truncate their tables,
+TEST_DATABASE_SCHEMA=merchant_payments_test  # so they get a schema of their own (created automatically)
+```
+
+BullMQ prints a recommendation for Redis 6.2+ when connected to Redis 6.0; the suite passes on 6.0.
+
 ### Tests
 
 ```bash
@@ -80,6 +96,7 @@ npm run test:integration          # Supertest against real PostgreSQL + Redis + 
 ```
 
 Integration tests use the separate `merchant_platform_test` database (created by `docker/postgres/init-test-db.sh`),
+or `TEST_DATABASE_NAME` / `TEST_DATABASE_SCHEMA` when set,
 generate a random JWT secret and encryption key per run, and use a random BullMQ prefix.
 
 ---
@@ -266,6 +283,8 @@ Each entry stores actor id and role (or `SYSTEM` for the worker), entity, redact
 
 Account lockout: consecutive wrong passwords are counted per account with one atomic `UPDATE ... RETURNING`, so parallel attempts cannot slip past the limit. When two attempts are left, the 401 says so (`meta.remainingAttempts`, shown as a warning on the sign-in page). On the fifth wrong password (`LOGIN_LOCKOUT_THRESHOLD`) the account locks: login returns `423 ACCOUNT_LOCKED`, even with the right password, until an admin unlocks it from the Team page (`POST /users/:id/unlock`). A successful sign-in resets the counter. Locks and unlocks are written to the audit log. Trade-off: the warning and the lock reveal that an account exists, but only after several wrong guesses and behind the per-IP rate limit.
 
+Deactivation: admins deactivate or reactivate accounts from the Team page (`PATCH /users/:id/status`, never their own account). A deactivated user's tokens stop working on the next request. Sign-in answers `403 ACCOUNT_DEACTIVATED` ("contact an administrator") only when the password is right; a wrong password gets the usual generic 401, so guessing never reveals an account's status. Both changes are audited.
+
 Other hardening: `helmet`, login rate limiting (`@nestjs/throttler`, default 5 per minute per IP), timing-safe login (a hash comparison always runs, with one generic error), JWT with issuer and audience checks, HS256 pinned, 15-minute expiry.
 
 ---
@@ -295,6 +314,7 @@ Full, interactive documentation: **`/api/docs`** (Swagger / OpenAPI). Every path
 | GET | `/users?role=&page=&pageSize=` | ADMIN |
 | GET | `/users/me` | any signed-in user |
 | POST | `/users/:id/unlock` | ADMIN |
+| PATCH | `/users/:id/status` | ADMIN |
 | POST | `/merchant-applications` | SALES, ADMIN |
 | GET | `/merchant-applications?status=&page=&pageSize=&assignedToMe=` | all (scoped) |
 | GET | `/merchant-applications/:id` | all (scoped) |

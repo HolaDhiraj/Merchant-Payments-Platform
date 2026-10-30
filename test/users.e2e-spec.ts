@@ -101,4 +101,62 @@ describe('Users (e2e)', () => {
         .expect(404);
     });
   });
+
+  describe('activation', () => {
+    const signIn = (email: string, password: string) =>
+      ctx.http.post('/api/auth/login').send({ email, password });
+    const setStatus = (caller: TestUser, id: string, isActive: unknown) =>
+      ctx.http.patch(`/api/users/${id}/status`).set(auth(caller)).send({ isActive });
+
+    it('deactivates an account, explains it at sign-in and lets an admin reactivate it', async () => {
+      const target = await ctx.createUser(Role.SALES, 'deactivated');
+
+      const deactivated = await setStatus(admin, target.id, false).expect(200);
+      expect(deactivated.body).toMatchObject({ id: target.id, isActive: false });
+
+      // Existing sessions end on the next request.
+      await ctx.http.get('/api/users/me').set(auth(target)).expect(401);
+
+      // Only the right password learns why; a wrong one gets the generic answer.
+      const rightPassword = await signIn(target.email, TEST_PASSWORD).expect(403);
+      expect(rightPassword.body).toMatchObject({ error: 'ACCOUNT_DEACTIVATED' });
+      expect(rightPassword.body.message).toContain('Contact an administrator');
+      const wrongPassword = await signIn(target.email, 'wrong-password-1').expect(401);
+      expect(wrongPassword.body).toMatchObject({ error: 'AUTHENTICATION_FAILED' });
+      expect(wrongPassword.body.meta).toBeUndefined();
+
+      const reactivated = await setStatus(admin, target.id, true).expect(200);
+      expect(reactivated.body).toMatchObject({ id: target.id, isActive: true });
+      await signIn(target.email, TEST_PASSWORD).expect(200);
+
+      const actions: Array<{ action: string }> = await ctx.dataSource.query(
+        `SELECT action FROM audit_logs WHERE entity_id = $1 AND action IN ('USER_ACTIVATED', 'USER_DEACTIVATED')`,
+        [target.id],
+      );
+      expect(actions.map((a) => a.action).sort()).toEqual(['USER_ACTIVATED', 'USER_DEACTIVATED']);
+    });
+
+    it('treats setting the current status as a no-op', async () => {
+      const target = await ctx.createUser(Role.SALES, 'noop');
+      await setStatus(admin, target.id, true).expect(200);
+      const rows: Array<{ count: string }> = await ctx.dataSource.query(
+        `SELECT count(*) FROM audit_logs WHERE entity_id = $1 AND action = 'USER_ACTIVATED'`,
+        [target.id],
+      );
+      expect(Number(rows[0].count)).toBe(0);
+    });
+
+    it('stops an admin from deactivating their own account', async () => {
+      const response = await setStatus(admin, admin.id, false).expect(422);
+      expect(response.body.message).toBe('You cannot deactivate your own account');
+    });
+
+    it('is admin-only and validates the body', async () => {
+      await setStatus(reviewer, sales.id, false).expect(403);
+      await setStatus(sales, reviewer.id, false).expect(403);
+      await setStatus(admin, sales.id, 'no').expect(400);
+      await setStatus(admin, '00000000-0000-4000-8000-000000000999', false).expect(404);
+    });
+  });
 });
+
