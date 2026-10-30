@@ -21,6 +21,7 @@ import { AssignReviewerDialog } from './AssignReviewerDialog';
 import { StatusBadge } from './Badges';
 import { DecisionDialog } from './DecisionDialog';
 import { LifecycleTrack } from './LifecycleTrack';
+import { MerchantAccountPanel } from './MerchantAccountPanel';
 import { ReviewPanel } from './ReviewPanel';
 import { RiskPanel } from './RiskPanel';
 import { canDecide, canEdit, canSubmit } from './permissions';
@@ -143,6 +144,9 @@ function ApplicationDetail({ application }: { application: MerchantApplication }
           <div className={styles.column}>
             <RiskPanel application={application} user={user} />
             <ReviewPanel application={application} user={user} onAssign={() => setDialog('assign')} />
+            {user.role === 'ADMIN' && application.status === 'APPROVED' && (
+              <MerchantAccountPanel application={application} />
+            )}
             <p className={styles.stamp}>
               Created {formatDateTime(application.createdAt)} · Updated {formatDateTime(application.updatedAt)}
             </p>

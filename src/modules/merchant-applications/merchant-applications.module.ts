@@ -3,6 +3,8 @@ import { BullModule } from '@nestjs/bullmq';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuditModule } from '../audit/audit.module';
 import { UsersModule } from '../users/users.module';
+import { MerchantsModule } from '../merchants/merchants.module';
+import { OnboardApprovedApplicationUseCase } from './application/use-cases/onboard-approved-application.use-case';
 import { MERCHANT_APPLICATION_REPOSITORY } from './domain/ports/merchant-application.repository';
 import { RISK_ASSESSMENT_REPOSITORY } from './domain/ports/risk-assessment.repository';
 import { RISK_REVIEW_QUEUE } from './domain/ports/risk-review-queue';
@@ -52,6 +54,7 @@ import { RiskProviderWebhookController } from './presentation/webhooks/risk-prov
     BullModule.registerQueue({ name: RISK_REVIEW_QUEUE_NAME }),
     AuditModule,
     UsersModule,
+    MerchantsModule,
   ],
   controllers: [MerchantApplicationsController, RiskProviderWebhookController],
   providers: [
@@ -77,6 +80,7 @@ import { RiskProviderWebhookController } from './presentation/webhooks/risk-prov
     SubmitMerchantApplicationUseCase,
     AssignReviewerUseCase,
     RecordReviewDecisionUseCase,
+    OnboardApprovedApplicationUseCase,
     ProcessRiskReviewUseCase,
     MarkRiskReviewFailedUseCase,
     RetryRiskReviewUseCase,

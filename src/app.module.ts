@@ -7,6 +7,7 @@ import {
   databaseConfig,
   jwtConfig,
   outboxConfig,
+  paymentsConfig,
   redisConfig,
   riskReviewConfig,
   riskWebhookConfig,
@@ -19,6 +20,10 @@ import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { AuditModule } from './modules/audit/audit.module';
 import { MerchantApplicationsModule } from './modules/merchant-applications/merchant-applications.module';
+import { MerchantsModule } from './modules/merchants/merchants.module';
+import { CatalogModule } from './modules/catalog/catalog.module';
+import { CustomersModule } from './modules/customers/customers.module';
+import { PaymentsModule } from './modules/payments/payments.module';
 import { HealthModule } from './modules/health/health.module';
 
 // Root module: wires configuration, PostgreSQL, Redis/BullMQ and the feature modules.
@@ -35,6 +40,7 @@ import { HealthModule } from './modules/health/health.module';
         riskReviewConfig,
         outboxConfig,
         riskWebhookConfig,
+        paymentsConfig,
       ],
       validationSchema: envValidationSchema,
       validationOptions: { abortEarly: false },
@@ -55,6 +61,10 @@ import { HealthModule } from './modules/health/health.module';
     UsersModule,
     AuthModule,
     MerchantApplicationsModule,
+    MerchantsModule,
+    CatalogModule,
+    CustomersModule,
+    PaymentsModule,
     HealthModule,
   ],
 })

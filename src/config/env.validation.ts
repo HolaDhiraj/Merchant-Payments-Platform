@@ -31,6 +31,10 @@ export const envValidationSchema = Joi.object({
 
   FIELD_ENCRYPTION_KEY: Joi.string().base64().invalid('CHANGE_ME').required(),
 
+  // Simulated bank transfers succeed only with this PIN (demo only; no real bank is called).
+  BANK_SIMULATOR_PIN: Joi.string().pattern(/^\d{4,6}$/).default('0000'),
+  PAYMENT_PROCESSOR_LATENCY_MS: Joi.number().integer().min(0).max(10000).default(0),
+
   RISK_REVIEW_MAX_ATTEMPTS: Joi.number().integer().min(1).max(20).default(5),
   RISK_REVIEW_BACKOFF_MS: Joi.number().integer().min(10).default(2000),
   RISK_PROVIDER_TRANSIENT_FAILURE_RATE: Joi.number().min(0).max(1).default(0),

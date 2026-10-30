@@ -3,11 +3,15 @@
 Merchant onboarding and risk-review platform built with **NestJS 11, TypeScript, PostgreSQL (TypeORM), Redis + BullMQ, JWT**,
 plus a **React web client ("Merchant Desk")** served by the same NestJS process on the same port.
 Sales users capture merchant applications, a background worker runs a (simulated) third-party KYB / risk check,
-and the assigned reviewer approves, rejects or requests more information. Every significant action is audited.
+and the assigned reviewer approves, rejects or requests more information. Approval opens the merchant: its owner
+signs in to a **merchant portal** to run a catalogue with discounts, take payments (cash, card, bank transfer) with
+fraud screening and loyalty points, and follow sales. Platform admins **monitor every merchant** read-only.
+Every significant action is audited.
 
 Highlights: Clean Architecture with one class per use case · object-level authorization (BOLA-safe) · **transactional outbox**
 → BullMQ with retries, backoff and layered idempotency · **HMAC-signed provider webhook** with replay protection ·
-AES-256-GCM field encryption · redacted, correlated audit trail · reviewed migrations · CI on GitHub Actions.
+AES-256-GCM field encryption · idempotent three-phase checkout · explainable fraud scoring · strict tenant isolation ·
+redacted, correlated audit trail · reviewed migrations · CI on GitHub Actions.
 
 ---
 
@@ -22,12 +26,13 @@ docker compose up -d postgres redis   # skip when using a local PostgreSQL and R
 set -a; . ./.env; set +a         # export .env for the TypeORM CLI and seed script
 npm run migration:run            # applies the reviewed migrations (run again after pulling new ones)
 npm run seed                     # creates one ADMIN, REVIEWER and SALES user from SEED_* variables in .env
-npm run seed:demo                # optional: 14 sample applications in every stage (re-runnable)
+npm run seed:demo                # optional: sample applications in every stage, merchants, catalogues and sales (re-runnable)
 npm run start:dev                # web app http://localhost:3000, API /api, Swagger UI /api/docs
 ```
 
 Seed credentials are the `SEED_*_EMAIL` / `SEED_*_PASSWORD` values that `env:init` generated in your local `.env`.
-Sign in to the web app with any of them; each role sees its own screens and actions.
+Sign in to the web app with any of them; each role sees its own screens and actions. `seed:demo` prints a one-time
+password for each merchant owner it creates; the first sign-in asks the owner to choose a new password.
 
 ### One port for the web app and the API
 
@@ -35,7 +40,7 @@ Sign in to the web app with any of them; each role sees its own screens and acti
 |---|---|
 | `http://localhost:3000/` (and every other non-`/api` path) | React web client |
 | `http://localhost:3000/api/...` | REST API (all routes carry the `/api` prefix) |
-| `http://localhost:3000/api/docs` | Swagger UI |
+| `http://localhost:3000/api/docs` | Swagger UI: every endpoint, its roles, request and response schemas |
 
 - **Development** (`npm run start:dev`): Nest mounts Vite in middleware mode on its own HTTP server
   (`src/infrastructure/web-client/web-client.ts`), so there is one process, one port, and hot reload for the client.
@@ -48,11 +53,13 @@ The client lives in `client/` (React 19, React Router, TanStack Query, CSS Modul
 
 ```
 client/src/
-  api/          typed fetch client, endpoint functions, React Query hooks (polls while a risk check runs)
-  auth/         session storage, AuthProvider (GET /api/users/me), route guard
-  components/   ui/ primitives (Button, Field, Dialog, Badge, Spinner, Skeleton…) and layout/ (AppShell, PageHeader)
-  features/     applications, audit, team, auth: one folder per screen area
-  lib/          formatting (money in minor units), enum labels, theme
+  api/          typed fetch client, endpoint functions, React Query hooks, merchant scope (own merchant or one an admin monitors)
+  auth/         session (ends itself at token expiry), AuthProvider (GET /api/users/me), route guard,
+                routeAccess.ts (which roles open which screen, used by the router and the sign-in redirect)
+  components/   ui/ primitives (Button, Field, Dialog, Badge, Spinner, Skeleton…), layout/ (AppShell, PageHeader), portal/
+  features/     applications, merchants, audit, team, account, auth, portal/ (dashboard, checkout, payments,
+                customers, catalog, team, settings): one folder per screen area, loaded on first visit
+  lib/          formatting (money in minor units), pricing, enum labels, theme
   styles/       tokens.css (the whole palette and scale) and base.css
 ```
 
@@ -84,6 +91,20 @@ TEST_DATABASE_SCHEMA=merchant_payments_test  # so they get a schema of their own
 ```
 
 BullMQ prints a recommendation for Redis 6.2+ when connected to Redis 6.0; the suite passes on 6.0.
+
+### `ENOSPC: System limit for number of file watchers reached`
+
+Linux limits inotify watches per user (often 65,536), and IDEs use most of them. `npm run start:dev`
+then logs a warning and keeps serving the API and web app, but hot reload may miss changes.
+Raise the limit once (survives reboots):
+
+```bash
+echo fs.inotify.max_user_watches=524288 | sudo tee /etc/sysctl.d/60-inotify-watches.conf
+sudo sysctl --system
+```
+
+Also stop dev servers you no longer need: one paused with `Ctrl+Z` keeps its watches (and its
+port) until it is ended, so use `Ctrl+C`, or `jobs` and `kill %1` in that terminal.
 
 ### Tests
 
@@ -127,11 +148,16 @@ src/
 │   ├── audit/                   append-only audit trail (+ admin read endpoint)
 │   ├── merchant-applications/
 │   │   ├── domain/              MerchantApplication aggregate, lifecycle state machine,
-│   │   │                        access policy, TaxId value object, ports
+│   │   │                        access policy, TaxId value object, ports (incl. MerchantOnboarding)
 │   │   ├── application/         one class per use case + reader/scheduler services
 │   │   ├── infrastructure/      ORM entities, mapper, repositories, BullMQ queue + worker,
 │   │   │                        outbox handler, simulated KYB provider, webhook signature verifier
 │   │   └── presentation/        controller, signed webhook controller + guard, validated DTOs
+│   ├── merchants/               onboarding on approval, profile and settings, the merchant's team,
+│   │                            platform list + MerchantByIdPipe for admin monitoring routes
+│   ├── catalog/                 categories and products, discount pricing (CatalogPricing)
+│   ├── customers/               customers by phone, loyalty points and their ledger
+│   ├── payments/                checkout, fraud screening, processor port + simulator, review, history, reports
 │   └── health/                  readiness probe (DB + Redis)
 └── infrastructure/database/     TypeORM options, CLI data source, migrations, seed
 ```
@@ -144,7 +170,16 @@ src/
 | **O**pen/closed | The lifecycle is a transition table (`application-lifecycle.ts`); new statuses or decisions extend data, not `if` chains. New risk vendors are new `RiskProvider` adapters. |
 | **L**iskov substitution | In-memory repositories and the controllable risk provider honour the same contracts (optimistic locking, unique idempotency key) as the real adapters, so use cases behave the same in unit tests. |
 | **I**nterface segregation | Small ports: `RiskReviewQueue`, `RiskProvider`, `FieldCipher`, `TokenService`, `PasswordHasher`, `UnitOfWork`, `Clock`. |
-| **D**ependency inversion | Use cases depend on symbols/interfaces (`MERCHANT_APPLICATION_REPOSITORY`, `RISK_PROVIDER`, ...). Module files are the composition roots that bind ports to adapters. |
+| **D**ependency inversion | Use cases depend on symbols/interfaces (`MERCHANT_APPLICATION_REPOSITORY`, `RISK_PROVIDER`, `PAYMENT_PROCESSOR`, ...). Module files are the composition roots that bind ports to adapters. |
+
+Each portal module owns its HTTP surface twice: a merchant controller under `/merchant/...` (tenant from the
+session) and a read-only platform controller under `/merchants/:merchantId/...` (ADMIN only). Both call the same
+use cases, so the two views can never compute a figure differently.
+
+**API documentation** is generated from the controllers and DTOs and served at `/api/docs` (Swagger / OpenAPI);
+it is the reference for every route, its roles and its schemas. Errors share one shape:
+`{ statusCode, error, message, path, correlationId, timestamp }`, with 400 validation, 401 authentication,
+403 role or assignment, 404 missing or not visible, 409 invalid transition or concurrent update, 422 business rule.
 
 ---
 
@@ -180,7 +215,8 @@ Risk status is tracked separately from the business status: `NOT_STARTED → PEN
 | Edit / submit | all | ✘ | **only own** |
 | Assign reviewer | ✔ | ✘ | ✘ |
 | Record decision | ✘ (segregation of duties) | **only if assigned** | ✘ |
-| Retry failed risk review, read audit log, create users | ✔ | ✘ | ✘ |
+| Retry failed risk review, read audit log, manage users | ✔ | ✘ | ✘ |
+| Monitor merchants (sales, payments, customers, products, team), read-only | ✔ | ✘ | ✘ |
 
 Two layers:
 
@@ -259,7 +295,11 @@ size, card-not-present, sole proprietorship), and its latency and transient fail
 
 ## 5. Audit trail and sensitive data
 
-**Audited actions:** `USER_CREATED`, `LOGIN_SUCCEEDED`, `LOGIN_FAILED`, `APPLICATION_CREATED`, `APPLICATION_UPDATED` (field names only, never values), `APPLICATION_SUBMITTED`, `REVIEWER_ASSIGNED`, `RISK_REVIEW_COMPLETED`, `RISK_REVIEW_FAILED`, `RISK_REVIEW_RETRIED`, `REVIEW_DECISION_RECORDED`.
+**Audited actions:**
+- Accounts: `USER_CREATED`, `LOGIN_SUCCEEDED`, `LOGIN_FAILED`, `USER_LOCKED`, `USER_UNLOCKED`, `USER_ACTIVATED`, `USER_DEACTIVATED`, `PASSWORD_CHANGED`, `TEMPORARY_PASSWORD_ISSUED`.
+- Applications: `APPLICATION_CREATED`, `APPLICATION_UPDATED` (field names only, never values), `APPLICATION_SUBMITTED`, `REVIEWER_ASSIGNED`, `RISK_REVIEW_COMPLETED`, `RISK_REVIEW_FAILED`, `RISK_REVIEW_RETRIED`, `REVIEW_DECISION_RECORDED`.
+- Merchants and payments: `MERCHANT_PROVISIONED`, `MERCHANT_SETTINGS_UPDATED`, `PAYMENT_REVIEWED`.
+
 Each entry stores actor id and role (or `SYSTEM` for the worker), entity, redacted metadata, the request **correlation id** and a timestamp. Audit writes share the business transaction, so an action and its audit record commit or roll back together. Admins read them at `GET /audit-logs`.
 
 **Never logged:** passwords, password hashes, tokens, `Authorization` headers, secrets.
@@ -276,7 +316,8 @@ Each entry stores actor id and role (or `SYSTEM` for the worker), entity, redact
 | `taxId` (EIN / TIN) | Highly sensitive, regulated | **Implemented:** AES-256-GCM (random IV, auth tag, versioned format `v1.`), only `tax_id_last4` stored in clear. API returns `taxIdMasked` only. | Envelope encryption with a KMS-managed data key; key rotation using the version prefix |
 | Owner date of birth, national id / SSN, bank account and routing numbers | Highly sensitive | **Not collected** (data minimisation) | Must be field-encrypted if added; bank data ideally tokenised by the processor |
 | Owner email, owner phone, owner name | PII | Stored in clear for search and contact; masked in logs and audit | Consider encryption plus a blind index if search is needed; retention policy |
-| Card data (PAN, CVV) | PCI DSS | **Never handled** by this service | Keep out of scope via processor tokenisation |
+| Card data (PAN, CVV), bank PIN | PCI DSS / secret | Validated in memory at checkout, then dropped: only brand, last 4 digits and an HMAC fingerprint are stored | Hosted fields or processor tokenisation, so the PAN never reaches this service |
+| Merchant payout account number | Sensitive | AES-256-GCM encrypted, last 4 digits in clear | KMS envelope encryption |
 | Password | Secret | bcrypt (cost 12), never logged | Same, plus breached-password checks |
 
 **Secrets:** no secret is committed. `.env` is git-ignored, `.env.example` holds only `CHANGE_ME` placeholders (rejected by Joi validation at boot), `npm run env:init` generates local secrets, and tests generate their own per run. Test data is synthetic (`example.test` domains, fake tax ids).
@@ -299,36 +340,67 @@ Defined in **hand-written, reviewed** migrations (`src/infrastructure/database/m
 - `audit_logs`: append-only, no FKs on purpose (the trail outlives entities), `jsonb` metadata, index on `(entity_type, entity_id, occurred_at)`.
 - `outbox_messages`: transactional outbox with attempts, last error and `available_at` backoff; a partial index covers only undelivered rows.
 - `processed_webhook_events`: webhook inbox; the provider event id is the primary key.
-- FKs use `ON DELETE RESTRICT`.
+- `users` (portal additions): `merchant_id` and `must_change_password`; a CHECK ties merchant roles to a merchant and keeps platform roles without one. Lockout columns: `failed_login_attempts`, `locked_at`.
+- `merchants`: one per approved application (UNIQUE), owner user, accepted methods, review threshold, loyalty rules (CHECKs), encrypted payout account.
+- `product_categories`, `products`: names and SKUs unique per merchant (case-insensitive), price > 0, discounts 0-100.
+- `customers`: UNIQUE `(merchant_id, phone)`, points balance never negative.
+- `payment_transactions`: status, method, persisted fraud score, decision and reasons; UNIQUE `(merchant_id, idempotency_key)` and `(merchant_id, reference)`; amount and cash CHECKs. `payment_transaction_items` keeps the price of each line at the time of sale.
+- `loyalty_ledger`: every point movement with the balance after it.
+- FKs use `ON DELETE RESTRICT` (categories use `SET NULL`, so deleting one keeps its products on sale).
 
 ---
 
-## 7. API overview
+## 7. Merchant portal
 
-Full, interactive documentation: **`/api/docs`** (Swagger / OpenAPI). Every path below is relative to **`/api`**.
+Approving an application **onboards the merchant in the same transaction**: a `merchants` row and an owner
+account (`MERCHANT_ADMIN`) with a random one-time password, shown once to the approver. Every route except
+`/users/me` and `/auth/change-password` answers `403 PASSWORD_CHANGE_REQUIRED` until that password is changed.
 
-| Method | Path | Roles |
-|---|---|---|
-| POST | `/auth/login` | public (rate limited) |
-| POST | `/users` | ADMIN |
-| GET | `/users?role=&page=&pageSize=` | ADMIN |
-| GET | `/users/me` | any signed-in user |
-| POST | `/users/:id/unlock` | ADMIN |
-| PATCH | `/users/:id/status` | ADMIN |
-| POST | `/merchant-applications` | SALES, ADMIN |
-| GET | `/merchant-applications?status=&page=&pageSize=&assignedToMe=` | all (scoped) |
-| GET | `/merchant-applications/:id` | all (scoped) |
-| PATCH | `/merchant-applications/:id` | SALES (own), ADMIN |
-| POST | `/merchant-applications/:id/submit` | SALES (own), ADMIN |
-| PUT | `/merchant-applications/:id/reviewer` | ADMIN |
-| POST | `/merchant-applications/:id/decision` | assigned REVIEWER |
-| POST | `/merchant-applications/:id/risk-review/retry` | ADMIN |
-| GET | `/merchant-applications/:id/risk-assessment` | all (scoped) |
-| GET | `/audit-logs?entityId=&action=` | ADMIN |
-| POST | `/webhooks/risk-provider` | public, **HMAC signature required** |
-| GET | `/health` | public |
+| Merchant role | Can |
+|---|---|
+| `MERCHANT_ADMIN` (owner) | everything below, plus team, catalogue, settings |
+| `MERCHANT_SALES` | take payments, manage customers, see their own payments |
+| `MERCHANT_REVIEWER` | review payments held by fraud screening, see all payments and reports |
 
-Errors share one shape: `{ statusCode, error, message, path, correlationId, timestamp }`. Status mapping: 400 validation, 401 authentication, 403 role or assignment, 404 missing or not visible, 409 invalid transition or concurrent update, 422 business rule.
+**Tenant isolation.** Merchant users carry a `merchant_id` (a CHECK ties merchant roles to it). Every portal
+query takes the tenant from the authenticated user, never from the URL; another merchant's records answer 404.
+
+**Checkout** (`POST /merchant/payments`) runs in three phases so no database transaction is held while the
+processor is called: (1) price the basket *from the catalogue*, attach or register the customer by phone,
+reserve redeemed points, screen for fraud and store the payment as `PROCESSING`; (2) charge the processor with
+the payment id as its idempotency key; (3) complete it, hold it for review, or decline it and return the points.
+The client's `Idempotency-Key` (unique per merchant in SQL) makes retries return the stored result (`200`,
+`Idempotent-Replayed: true`); reusing a key for a different basket is `409 IDEMPOTENCY_KEY_REUSED`.
+
+**Payment methods.** Cash (customer name + phone required, change computed), card (Luhn, brand, expiry, CVV
+checked), bank transfer (account number + PIN; the simulated bank accepts `BANK_SIMULATOR_PIN`, default `0000`).
+QR is shown as "coming soon" and refused by the API. **No card number, CVV, account number or PIN is stored or
+logged**: only brand, last 4 digits and an HMAC fingerprint (keyed from `FIELD_ENCRYPTION_KEY`). The merchant's
+payout account number is AES-256-GCM encrypted. Simulated declines: card `4000 0000 0000 0002` (issuer),
+`…9995` (funds), `…0069` (lost/stolen), CVV `000`.
+
+**Fraud screening** is rule-based and explainable (each point of the score has a reason the reviewer sees):
+high amount vs. the merchant's threshold (40), very high (55), first purchase by a new customer at half the
+threshold (15), manually keyed card (10), same instrument 3+ times in 10 min (30), 2+ declines in 30 min (40),
+same customer 4+ times in 10 min (25). Score ≥ 40 → held for review (authorized, not collected);
+≥ 70 → blocked without contacting the processor.
+
+**Pricing and loyalty.** A product's own discount (whole percent) overrides its category's; prices shown and
+charged use the same function. Customers earn 1 point per `earnUnit` actually paid and spend points worth
+`pointValue` each, capped at a share of the order; all point movements are atomic and kept in `loyalty_ledger`.
+Reports count `COMPLETED` payments only, bucketed by day in the viewer's time zone.
+
+**Platform monitoring.** A platform `ADMIN` opens any merchant from **Merchants** and sees its overview (today's
+and all-time totals, daily chart, payment mix, best sellers), payment history and details including the fraud
+reasons, customers and their points, products and categories, team and profile. It is read-only by design: taking
+or reviewing payments stays with the merchant's own people. The API side is `GET /merchants/:merchantId/...`
+(`ADMIN` only; an unknown merchant is 404, and a payment or customer is only found under its own merchant). The web
+client reuses the portal's screens inside a *merchant scope*, so the admin sees exactly what the merchant sees,
+with every action hidden.
+
+**Sessions.** Access tokens last 15 minutes. The client ends the session the moment the token expires (or on any
+401) and the sign-in page says "Session expired". After signing in again the user returns to the page they were on,
+but only if their role can open it; a deliberate sign-out never carries the page over to the next person.
 
 ---
 
@@ -348,8 +420,11 @@ Errors share one shape: `{ statusCode, error, message, path, correlationId, time
 | Integration: `outbox.e2e-spec.ts` | Outbox row written with the submission and dispatched; nothing written on rollback; **broker outage keeps the request, recovery delivers it** |
 | Integration: `webhook.e2e-spec.ts` | Signed result applied, redelivery de-duplicated, second result for the same submission ignored, bad signature / tampered body / stale timestamp / missing headers give 401, payload validation, unknown application acknowledged |
 | Unit: `hmac-webhook-signature.verifier.spec.ts`, `handle-risk-provider-webhook.use-case.spec.ts` | Signature edge cases (rotation, replay under a new id, truncation), webhook idempotency |
+| Unit: `fraud-screening`, `card`, `pricing`, `loyalty` | Every fraud rule and threshold, Luhn / expiry / brand, discount precedence and rounding, points earned and the redemption cap |
+| Integration: `users.e2e-spec.ts` | User management, lockout after repeated wrong passwords with the warning, admin unlock, activation and deactivation |
+| Integration: `merchant-portal.e2e-spec.ts` | Onboarding on approval and the forced password change, merchant team, catalogue discounts, every payment method, idempotent replay, fraud hold / approve / void / block, loyalty, reports, **tenant isolation**, and admin monitoring (read access, 403 for other roles, 404 across merchants) |
 
-Current result: **123 unit tests, 50 integration tests, all passing** (integration suite run three times in a row to check for flakiness).
+Current result: **146 unit tests, 82 integration tests, all passing**.
 CI (`.github/workflows/ci.yml`) runs lint, typecheck, build, unit tests with coverage and the integration suite against
 PostgreSQL and Redis service containers on every push and PR. Set `TEST_LOGS=1` to see application logs while debugging tests.
 
@@ -366,6 +441,12 @@ PostgreSQL and Redis service containers on every push and PR. Set `TEST_LOGS=1` 
 - **Stateless JWT access tokens only**, with no refresh tokens or revocation list. Re-loading the user per request covers deactivation.
 - **Login throttling is in-memory per instance.** Multi-instance deployments should use the Redis throttler storage.
 - **Simulated KYB vendor.** A real adapter would add HTTP timeouts, a circuit breaker and map 4xx/5xx to permanent/transient errors.
+- **Simulated payment processor and bank.** Card data reaches the API for the demo; a real integration would use the
+  processor's hosted fields or tokens and replace only the `PAYMENT_PROCESSOR` binding. A payment left `PROCESSING` by a
+  crash between charge and settle would need a reconciliation job against the processor.
+- **Rule-based fraud scoring** with fixed weights. It is explainable and testable; a production system would tune the
+  weights from data or add a scoring service behind the same port.
+- **Admin monitoring reads are not audited.** Writes are; read auditing would be the next step for regulated data.
 - **Skipped optional item:** MongoDB audit storage (the port supports it). ADRs are in `docs/adr/`.
 
 ---

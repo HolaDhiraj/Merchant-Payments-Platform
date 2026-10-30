@@ -17,11 +17,13 @@ import { BusinessType, SalesChannel } from '../../../modules/merchant-applicatio
 import { MerchantApplication } from '../../../modules/merchant-applications/domain/model/merchant-application';
 import { ReviewDecision } from '../../../modules/merchant-applications/domain/model/review-decision.enum';
 import { RiskStatus } from '../../../modules/merchant-applications/domain/model/risk.enums';
+import { seedDemoMerchants } from './seed-demo-merchants';
 
 // Sample merchant applications for local development and demos.
 // Everything goes through the real use cases: the sales user captures and submits, the background
 // worker runs the (simulated) risk check, the admin assigns, and the reviewer decides. Statuses,
 // risk results and the audit trail are therefore exactly what using the app would produce.
+// Approved applications are then opened as merchants (see seed-demo-merchants.ts).
 // Re-running is safe: merchants that already exist (by trading name) are skipped.
 //
 // Usage: set -a; . ./.env; set +a; npm run seed:demo   (run `npm run seed` first)
@@ -394,7 +396,15 @@ async function run(app: INestApplicationContext): Promise<void> {
     logger.log(`${name}: ${final.status} (${risk})`);
   }
 
-  logger.log(`Done: ${created.length} created, ${existing.size} already present`);
+  logger.log(`Applications: ${created.length} created, ${existing.size} already present`);
+
+  // Approved applications become merchants with a catalogue and sales history.
+  const signIns = await seedDemoMerchants(app, admin);
+  if (signIns.length > 0) {
+    logger.log('Merchant owner sign-ins (temporary passwords, changed at first sign-in):');
+    // eslint-disable-next-line no-console
+    console.table(signIns);
+  }
 }
 
 async function actorFor(app: INestApplicationContext, emailVar: string, role: Role): Promise<Actor> {

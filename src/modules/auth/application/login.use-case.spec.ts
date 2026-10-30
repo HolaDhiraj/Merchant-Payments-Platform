@@ -37,6 +37,8 @@ describe('LoginUseCase', () => {
     role: Role.SALES,
     passwordHash: 'drowssap-tset',
     isActive: true,
+    merchantId: null,
+    mustChangePassword: false,
     failedLoginAttempts: 0,
     lockedAt: null,
     createdAt: now,
@@ -77,6 +79,7 @@ describe('LoginUseCase', () => {
       clearLoginFailures: async (id) => {
         Object.assign(rows.get(id)!, { failedLoginAttempts: 0, lockedAt: null });
       },
+      updatePassword: async () => undefined,
       setActive: async (id, isActive) => {
         rows.get(id)!.isActive = isActive;
       },

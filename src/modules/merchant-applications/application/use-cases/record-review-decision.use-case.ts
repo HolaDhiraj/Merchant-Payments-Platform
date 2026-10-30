@@ -12,14 +12,29 @@ import {
   MERCHANT_APPLICATION_REPOSITORY,
   MerchantApplicationRepository,
 } from '../../domain/ports/merchant-application.repository';
+import {
+  MERCHANT_ONBOARDING,
+  MerchantOnboarding,
+  OnboardingCredentials,
+} from '../../domain/ports/merchant-onboarding';
+import { ApplicationStatus } from '../../domain/model/application-status.enum';
 import { MerchantApplicationReader } from '../services/merchant-application-reader';
+import { toOnboardingRequest } from '../services/onboarding-request';
 
 export interface RecordDecisionCommand {
   decision: ReviewDecision;
   reason?: string | null;
 }
 
+export interface DecisionOutcome {
+  application: MerchantApplication;
+  // Present when the decision approved the application: the new merchant's owner sign-in.
+  onboarding: OnboardingCredentials | null;
+}
+
 // Records approve / reject / request-info. Only the assigned reviewer may do this.
+// Approval also onboards the merchant in the same transaction, so an approved application
+// always has its merchant account (and a failed onboarding leaves the application unapproved).
 @Injectable()
 export class RecordReviewDecisionUseCase {
   constructor(
@@ -29,13 +44,14 @@ export class RecordReviewDecisionUseCase {
     @Inject(UNIT_OF_WORK) private readonly unitOfWork: UnitOfWork,
     @Inject(CLOCK) private readonly clock: Clock,
     private readonly audit: AuditLogger,
+    @Inject(MERCHANT_ONBOARDING) private readonly onboarding: MerchantOnboarding,
   ) {}
 
   async execute(
     actor: Actor,
     applicationId: string,
     command: RecordDecisionCommand,
-  ): Promise<MerchantApplication> {
+  ): Promise<DecisionOutcome> {
     return this.unitOfWork.run(async () => {
       const application = await this.reader.getVisible(actor, applicationId);
       if (!MerchantApplicationAccessPolicy.canRecordDecision(actor, application)) {
@@ -61,7 +77,12 @@ export class RecordReviewDecisionUseCase {
           hasReason: Boolean(application.decisionReason),
         },
       });
-      return application;
+
+      const onboarding =
+        application.status === ApplicationStatus.APPROVED
+          ? await this.onboarding.onboard(actor, toOnboardingRequest(application))
+          : null;
+      return { application, onboarding };
     });
   }
 }

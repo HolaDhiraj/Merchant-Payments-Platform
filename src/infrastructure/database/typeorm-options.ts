@@ -6,6 +6,14 @@ import { RiskAssessmentOrmEntity } from '../../modules/merchant-applications/inf
 import { InitialSchema1730000000000 } from './migrations/1730000000000-InitialSchema';
 import { OutboxAndWebhookInbox1730000000001 } from './migrations/1730000000001-OutboxAndWebhookInbox';
 import { UserLoginLockout1730000000002 } from './migrations/1730000000002-UserLoginLockout';
+import { MerchantPortal1730000000003 } from './migrations/1730000000003-MerchantPortal';
+import { MerchantOrmEntity } from '../../modules/merchants/infrastructure/merchant.orm-entity';
+import { CategoryOrmEntity, ProductOrmEntity } from '../../modules/catalog/infrastructure/catalog.orm-entities';
+import { CustomerOrmEntity, LoyaltyEntryOrmEntity } from '../../modules/customers/infrastructure/customer.orm-entities';
+import {
+  PaymentLineOrmEntity,
+  PaymentTransactionOrmEntity,
+} from '../../modules/payments/infrastructure/payment.orm-entities';
 import { OutboxMessageOrmEntity } from '../../shared/infrastructure/outbox/outbox-message.orm-entity';
 import { ProcessedWebhookEventOrmEntity } from '../../modules/merchant-applications/infrastructure/webhooks/processed-webhook-event.orm-entity';
 
@@ -41,11 +49,19 @@ export function buildTypeOrmOptions(settings: DatabaseConnectionSettings): DataS
       RiskAssessmentOrmEntity,
       OutboxMessageOrmEntity,
       ProcessedWebhookEventOrmEntity,
+      MerchantOrmEntity,
+      CategoryOrmEntity,
+      ProductOrmEntity,
+      CustomerOrmEntity,
+      LoyaltyEntryOrmEntity,
+      PaymentTransactionOrmEntity,
+      PaymentLineOrmEntity,
     ],
     migrations: [
       InitialSchema1730000000000,
       OutboxAndWebhookInbox1730000000001,
       UserLoginLockout1730000000002,
+      MerchantPortal1730000000003,
     ],
     migrationsTableName: 'schema_migrations',
     synchronize: false,

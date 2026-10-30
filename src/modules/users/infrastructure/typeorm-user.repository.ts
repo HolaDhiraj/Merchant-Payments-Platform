@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Repository } from 'typeorm';
+import { IsNull, Repository } from 'typeorm';
 import { TransactionalEntityManager } from '../../../shared/infrastructure/database/transactional-entity-manager';
 import { isUniqueViolation } from '../../../shared/infrastructure/database/postgres-errors';
 import { DuplicateEntityError } from '../../../shared/domain/domain-errors';
@@ -36,6 +36,8 @@ export class TypeOrmUserRepository implements UserRepository {
         role: user.role,
         passwordHash: user.passwordHash,
         isActive: user.isActive,
+        merchantId: user.merchantId,
+        mustChangePassword: user.mustChangePassword,
         failedLoginAttempts: user.failedLoginAttempts,
         lockedAt: user.lockedAt,
         createdAt: user.createdAt,
@@ -52,7 +54,10 @@ export class TypeOrmUserRepository implements UserRepository {
 
   async search(criteria: UserSearchCriteria, page: PageRequest): Promise<Page<User>> {
     const [rows, total] = await this.repository.findAndCount({
-      where: criteria.role ? { role: criteria.role } : {},
+      where: {
+        merchantId: criteria.merchantId ?? IsNull(),
+        ...(criteria.role && { role: criteria.role }),
+      },
       order: { fullName: 'ASC', id: 'ASC' },
       skip: (page.page - 1) * page.pageSize,
       take: page.pageSize,
@@ -87,6 +92,10 @@ export class TypeOrmUserRepository implements UserRepository {
 
   async setActive(id: string, isActive: boolean): Promise<void> {
     await this.repository.update({ id }, { isActive });
+  }
+
+  async updatePassword(id: string, passwordHash: string, mustChangePassword: boolean): Promise<void> {
+    await this.repository.update({ id }, { passwordHash, mustChangePassword });
   }
 
   private toDomain(row: UserOrmEntity): User {

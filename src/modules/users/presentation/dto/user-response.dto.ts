@@ -13,6 +13,10 @@ export class UserResponseDto {
   @ApiProperty({ description: 'Locked after too many wrong passwords; an admin can unlock it' })
   isLocked: boolean;
   @ApiProperty({ type: Date, nullable: true }) lockedAt: Date | null;
+  @ApiProperty({ type: String, nullable: true, description: 'Set for merchant portal users' })
+  merchantId: string | null;
+  @ApiProperty({ description: 'A temporary password must be changed before anything else' })
+  mustChangePassword: boolean;
   @ApiProperty() createdAt: Date;
 
   static fromDomain(user: User): UserResponseDto {
@@ -24,6 +28,8 @@ export class UserResponseDto {
       isActive: user.isActive,
       isLocked: user.isLocked,
       lockedAt: user.lockedAt,
+      merchantId: user.merchantId,
+      mustChangePassword: user.mustChangePassword,
       createdAt: user.createdAt,
     };
   }

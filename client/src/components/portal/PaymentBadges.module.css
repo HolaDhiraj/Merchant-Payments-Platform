@@ -1,0 +1,15 @@
+.method {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.method svg {
+  color: var(--text-faint);
+}
+
+.method :global(.mono) {
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+}

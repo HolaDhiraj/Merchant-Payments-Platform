@@ -4,6 +4,8 @@ import { LoginFailureState, User } from './user';
 
 export interface UserSearchCriteria {
   role?: Role;
+  // A merchant id lists that merchant's users; null lists platform staff only.
+  merchantId: string | null;
 }
 
 // Persistence port for users. Other modules depend on this interface, never on TypeORM.
@@ -18,6 +20,8 @@ export interface UserRepository {
   // Resets the counter and lifts any lock (successful sign-in or admin unlock).
   clearLoginFailures(id: string): Promise<void>;
   setActive(id: string, isActive: boolean): Promise<void>;
+  // Stores a new hash; mustChangePassword marks it temporary (issued by someone else).
+  updatePassword(id: string, passwordHash: string, mustChangePassword: boolean): Promise<void>;
 }
 
 export const USER_REPOSITORY = Symbol('USER_REPOSITORY');

@@ -16,6 +16,10 @@ export interface CreateUserCommand {
   fullName: string;
   role: Role;
   password: string;
+  // Merchant users only: the merchant (tenant) they belong to.
+  merchantId?: string | null;
+  // True when someone else chose the password, so the user must replace it at first sign-in.
+  mustChangePassword?: boolean;
 }
 
 // Creates a platform user (ADMIN only, enforced at the controller).
@@ -44,6 +48,8 @@ export class CreateUserUseCase {
       role: command.role,
       passwordHash: await this.passwordHasher.hash(command.password),
       isActive: true,
+      merchantId: command.merchantId ?? null,
+      mustChangePassword: command.mustChangePassword ?? false,
       createdAt: now,
       updatedAt: now,
     });
@@ -55,7 +61,7 @@ export class CreateUserUseCase {
         action: AuditAction.USER_CREATED,
         entityType: 'User',
         entityId: user.id,
-        metadata: { role: user.role, email: user.email },
+        metadata: { role: user.role, email: user.email, merchantId: user.merchantId },
       });
     });
 

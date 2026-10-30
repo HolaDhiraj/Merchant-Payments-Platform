@@ -86,6 +86,24 @@ export class AccountDeactivatedError extends DomainError {
   }
 }
 
+// An Idempotency-Key was reused for a request with different content.
+export class IdempotencyKeyReusedError extends DomainError {
+  readonly code = 'IDEMPOTENCY_KEY_REUSED';
+
+  constructor() {
+    super('This Idempotency-Key was already used for a different request');
+  }
+}
+
+// The caller signed in with a temporary password and must replace it before doing anything else.
+export class PasswordChangeRequiredError extends DomainError {
+  readonly code = 'PASSWORD_CHANGE_REQUIRED';
+
+  constructor() {
+    super('Change your temporary password to continue');
+  }
+}
+
 // Too many consecutive wrong passwords; only an admin can unlock the account.
 export class AccountLockedError extends DomainError {
   readonly code = 'ACCOUNT_LOCKED';

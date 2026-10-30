@@ -24,7 +24,7 @@ import {
   ApiUnprocessableEntityResponse,
 } from '@nestjs/swagger';
 import { Actor } from '../../../shared/domain/actor';
-import { Role } from '../../../shared/domain/role.enum';
+import { PLATFORM_ROLES, Role } from '../../../shared/domain/role.enum';
 import { mapPage } from '../../../shared/application/pagination';
 import { Roles } from '../../../shared/presentation/decorators/roles.decorator';
 import { CurrentActor } from '../../../shared/presentation/decorators/current-actor.decorator';
@@ -37,12 +37,15 @@ import { AssignReviewerUseCase } from '../application/use-cases/assign-reviewer.
 import { RecordReviewDecisionUseCase } from '../application/use-cases/record-review-decision.use-case';
 import { RetryRiskReviewUseCase } from '../application/use-cases/retry-risk-review.use-case';
 import { GetRiskAssessmentUseCase } from '../application/use-cases/get-risk-assessment.use-case';
+import { OnboardApprovedApplicationUseCase } from '../application/use-cases/onboard-approved-application.use-case';
 import { CreateMerchantApplicationDto } from './dto/create-merchant-application.dto';
 import { UpdateMerchantApplicationDto } from './dto/update-merchant-application.dto';
 import { ListMerchantApplicationsQueryDto } from './dto/list-merchant-applications-query.dto';
 import { AssignReviewerDto } from './dto/assign-reviewer.dto';
 import { RecordDecisionDto } from './dto/record-decision.dto';
 import {
+  DecisionResponseDto,
+  OnboardingCredentialsDto,
   MerchantApplicationPageResponseDto,
   MerchantApplicationResponseDto,
   RiskAssessmentResponseDto,
@@ -53,6 +56,8 @@ import {
 @ApiTags('Merchant applications')
 @ApiBearerAuth()
 @ApiNotFoundResponse({ description: 'Application does not exist or is not visible to the caller' })
+// Platform staff only; method-level @Roles narrow this further.
+@Roles(...PLATFORM_ROLES)
 @Controller('merchant-applications')
 export class MerchantApplicationsController {
   constructor(
@@ -65,6 +70,7 @@ export class MerchantApplicationsController {
     private readonly recordDecision: RecordReviewDecisionUseCase,
     private readonly retryRiskReview: RetryRiskReviewUseCase,
     private readonly getRiskAssessment: GetRiskAssessmentUseCase,
+    private readonly onboardApproved: OnboardApprovedApplicationUseCase,
   ) {}
 
   @Post()
@@ -152,17 +158,33 @@ export class MerchantApplicationsController {
   @Post(':id/decision')
   @Roles(Role.REVIEWER)
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Approve, reject or request info (assigned reviewer only)' })
-  @ApiOkResponse({ type: MerchantApplicationResponseDto })
+  @ApiOperation({
+    summary: 'Approve, reject or request info (assigned reviewer only)',
+    description: 'Approving also onboards the merchant and returns the owner\'s one-time password.',
+  })
+  @ApiOkResponse({ type: DecisionResponseDto })
   @ApiForbiddenResponse({ description: 'Caller is not the assigned reviewer' })
   @ApiConflictResponse({ description: 'Invalid state transition' })
   async decide(
     @CurrentActor() actor: Actor,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: RecordDecisionDto,
-  ): Promise<MerchantApplicationResponseDto> {
-    const application = await this.recordDecision.execute(actor, id, dto);
-    return MerchantApplicationResponseDto.fromDomain(application);
+  ): Promise<DecisionResponseDto> {
+    const { application, onboarding } = await this.recordDecision.execute(actor, id, dto);
+    return { ...MerchantApplicationResponseDto.fromDomain(application), onboarding };
+  }
+
+  // For applications approved before onboarding was automatic.
+  @Post(':id/onboarding')
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: 'Open the merchant account for an approved application' })
+  @ApiCreatedResponse({ type: OnboardingCredentialsDto })
+  @ApiConflictResponse({ description: 'The merchant or the owner email already exists' })
+  onboard(
+    @CurrentActor() actor: Actor,
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<OnboardingCredentialsDto> {
+    return this.onboardApproved.execute(actor, id);
   }
 
   @Post(':id/risk-review/retry')
